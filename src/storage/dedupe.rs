@@ -5,8 +5,6 @@ use std::time::Duration;
 use dashmap::DashMap;
 
 use crate::now_ms;
-use crate::storage::encode;
-use crate::storage::engine::StorageEngine;
 
 /// Trait for deduplication.
 pub trait DedupeStore: Send + Sync {

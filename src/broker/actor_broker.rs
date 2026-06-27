@@ -71,14 +71,14 @@ impl<
         })?
     }
 
-    async fn unsubscribe(&self, id: SubscriptionId) -> Result<bool> {
+    async fn unsubscribe(&self, _id: SubscriptionId) -> Result<bool> {
         // Unsubscribe requires knowing which topic the id belongs to.
         // In the actor model, the caller is expected to track this.
         // A full implementation would maintain a sid→topic index.
         Ok(false)
     }
 
-    async fn drop_sink(&self, sink_id: u64) -> usize {
+    async fn drop_sink(&self, _sink_id: u64) -> usize {
         // DropSink is broadcast to all actors.  A full implementation
         // would iterate all actors with a `DropSink` message.
         // For the minimal impl, return 0.

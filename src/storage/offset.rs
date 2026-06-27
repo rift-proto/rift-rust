@@ -4,9 +4,6 @@ use std::sync::atomic::{AtomicI64, Ordering};
 
 use dashmap::DashMap;
 
-use crate::storage::encode;
-use crate::storage::engine::StorageEngine;
-
 /// Trait for per-topic monotonic offset allocation.
 pub trait OffsetStore: Send + Sync {
     /// Allocate the next offset for `topic` and return it.

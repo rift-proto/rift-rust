@@ -19,16 +19,16 @@ use crate::storage::{
     DedupeStore, LogStore, MemoryDedupeStore, MemoryLogStore, MemoryOffsetStore,
     MemorySnapshotStore, OffsetStore, SnapshotStore,
 };
+use crate::topic::TopicStore;
 use crate::topic::store::LogEntry;
-use crate::topic::{RetentionPolicy, TopicProfile, TopicStore};
 
 /// Single-process broker, generic over storage backends.
 ///
 /// Type parameters correspond to the four persistence traits:
-/// - `O`: [`OffsetStore`] — per-topic offset allocation
-/// - `L`: [`LogStore`] — append + range-query message log
-/// - `D`: [`DedupeStore`] — deduplication
-/// - `S`: [`SnapshotStore`] — snapshot capture and retrieval
+/// - `O`: [`OffsetStore`](crate::storage::OffsetStore) — per-topic offset allocation
+/// - `L`: [`LogStore`](crate::storage::LogStore) — append + range-query message log
+/// - `D`: [`DedupeStore`](crate::storage::DedupeStore) — deduplication
+/// - `S`: [`SnapshotStore`](crate::storage::SnapshotStore) — snapshot capture and retrieval
 ///
 /// Use the type aliases for common configurations:
 /// - [`DefaultBroker`] — all memory-backed (development)
@@ -331,6 +331,7 @@ mod tests {
     use super::*;
     use crate::broker::fanout::test_sink::CountingSink;
     use crate::frame::{Codec, FrameFlags, FrameType};
+    use crate::topic::{RetentionPolicy, TopicProfile};
 
     fn make_frame(topic: &str, msg_id: &str, payload: &[u8]) -> Frame {
         Frame {

@@ -12,7 +12,7 @@ use tokio_util::codec::{Decoder, Encoder};
 use crate::broker::broker::PublishOutcome;
 use crate::broker::fanout::SubscribeIntent;
 use crate::error::{FrameReject, Result, RiftError};
-use crate::frame::{Frame, FrameFlags, FrameType};
+use crate::frame::Frame;
 use crate::storage::StoredSnapshot;
 
 /// A message sent from Gateway to Broker (request) or Broker to Gateway (response/push).

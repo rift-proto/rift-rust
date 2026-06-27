@@ -8,10 +8,7 @@ use parking_lot::RwLock;
 use uuid::Uuid;
 
 use crate::now_ms;
-use crate::storage::encode;
-use crate::storage::engine::StorageEngine;
 use crate::topic::TopicStore;
-use crate::topic::store::LogEntry;
 
 /// A stored snapshot.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -195,6 +192,7 @@ mod tests {
     use super::*;
     use crate::topic::profile::TopicProfile;
     use crate::topic::retention::RetentionPolicy;
+    use crate::topic::store::LogEntry;
 
     #[test]
     fn memory_capture_and_get() {

@@ -5,7 +5,7 @@
 //! Two engines ship with the crate:
 //!
 //! - [`MemoryEngine`] — in-process, zero-config, no persistence.
-//! - [`SledEngine`] — embedded on-disk B+tree (feature `sled`).
+//! - [`SledEngine`](crate::storage::SledEngine) — embedded on-disk B+tree (feature `sled`).
 
 pub mod dedupe;
 pub mod encode;

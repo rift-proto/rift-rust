@@ -4,13 +4,10 @@
 
 use std::sync::Arc;
 
-use bytes::Bytes;
 use dashmap::DashMap;
 use parking_lot::RwLock;
 
 use crate::now_ms;
-use crate::storage::encode;
-use crate::storage::engine::StorageEngine;
 use crate::topic::retention::RetentionPolicy;
 use crate::topic::store::LogEntry;
 
@@ -214,6 +211,8 @@ pub use sled_impl::SledLogStore;
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::topic::store::LogEntry;
+    use bytes::Bytes;
 
     fn sample_entry(offset: i64) -> LogEntry {
         LogEntry {

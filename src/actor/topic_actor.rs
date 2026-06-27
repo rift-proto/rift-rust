@@ -8,24 +8,22 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
 
-use async_trait::async_trait;
 use bytes::Bytes;
-use tokio::sync::{Semaphore, mpsc, oneshot};
+use tokio::sync::{Semaphore, mpsc};
 use tracing::warn;
 use uuid::Uuid;
 
 use crate::actor::messages::TopicMsg;
 use crate::broker::broker::PublishOutcome;
-use crate::broker::fanout::{ConnectionSink, FanoutSink, SubscribeIntent, SubscriptionId};
-use crate::error::{MessageReject, Result, RiftError, TopicReject};
+use crate::broker::fanout::{ConnectionSink, SubscribeIntent, SubscriptionId};
+use crate::error::{Result, RiftError};
 use crate::frame::Frame;
 use crate::message::MessageClass;
 use crate::now_ms;
 use crate::storage::{DedupeStore, LogStore, OffsetStore, SnapshotStore};
 use crate::topic::profile::TopicProfile;
-use crate::topic::retention::RetentionPolicy;
 use crate::topic::store::LogEntry;
-
+#[allow(dead_code)]
 /// A local subscriber stored in the actor's subscriber map.
 struct LocalSink {
     sink: ConnectionSink,
@@ -37,8 +35,10 @@ pub struct TopicActor<O: OffsetStore, L: LogStore, D: DedupeStore, S: SnapshotSt
     topic_name: String,
     profile: TopicProfile,
     offsets: Arc<O>,
+    #[allow(dead_code)]
     log: Arc<L>,
     dedupe: Arc<D>,
+    #[allow(dead_code)]
     snapshots: Arc<S>,
     subscribers: HashMap<SubscriptionId, LocalSink>,
     next_sub_id: u64,

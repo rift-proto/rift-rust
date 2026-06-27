@@ -2,8 +2,8 @@
 //!
 //! Concrete implementations live in sibling modules:
 //! - [`InMemoryBroker`](crate::broker::InMemoryBroker) — single-process, no persistence.
-//! - [`RemoteBroker`] — TCP-based distributed broker (Phase 2a).
-//! - [`ActorBroker`] — actor-based broker (Phase 2b).
+//! - [`RemoteBroker`](super::RemoteBroker) — TCP-based distributed broker (Phase 2a).
+//! - [`ActorBroker`](super::ActorBroker) — actor-based broker (Phase 2b).
 
 use async_trait::async_trait;
 use bytes::Bytes;

@@ -1,8 +1,8 @@
 //! Low-level byte store abstraction.
 //!
 //! Two implementations:
-//! - [`MemoryEngine`] — `DashMap`-backed, no persistence.
-//! - [`SledEngine`] — `sled::Tree`-backed, durable (feature `sled`).
+//! - [`MemoryEngine`](super::MemoryEngine) — `DashMap`-backed, no persistence.
+//! - [`SledEngine`](super::SledEngine) — `sled::Tree`-backed, durable (feature `sled`).
 
 use std::sync::Arc;
 

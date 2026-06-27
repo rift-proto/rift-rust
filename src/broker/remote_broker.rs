@@ -18,7 +18,7 @@ use tokio::sync::{Mutex, mpsc, oneshot};
 
 use crate::broker::broker::{Broker, PublishOutcome};
 use crate::broker::fanout::{ConnectionSink, SubscribeIntent, SubscriptionId};
-use crate::broker::wire::{WireCodec, WireMsg};
+use crate::broker::wire::WireMsg;
 use crate::error::{Result, RiftError};
 
 /// A `Broker` that talks to an external broker node over framed TCP.
@@ -53,8 +53,8 @@ impl RemoteBroker {
         let sinks: Arc<DashMap<u64, mpsc::Sender<Bytes>>> = Arc::new(DashMap::new());
 
         // Spawn reader task.
-        let pending_reader = pending.clone();
-        let sinks_reader = sinks.clone();
+        let _pending_reader = pending.clone();
+        let _sinks_reader = sinks.clone();
         let reader_handle = tokio::spawn(async move {
             // Reader task: reads framed messages from the broker connection.
             // In a full implementation this would parse the length-prefixed
