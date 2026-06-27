@@ -7,11 +7,11 @@
 //! # Quick start
 //!
 //! ```no_run
-//! use rift::RiftServer;
+//! use rifts::RiftServer;
 //! use std::sync::Arc;
 //! use tokio::sync::Notify;
 //!
-//! # async fn run() -> rift::Result<()> {
+//! # async fn run() -> rifts::Result<()> {
 //! let shutdown = Arc::new(Notify::new());
 //! let server = RiftServer::builder()
 //!     .websocket_transport()

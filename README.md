@@ -1,25 +1,12 @@
-# Rift Realtime Protocol / 1.0
+# Rift Realtime Protocol / 1.0 — `rifts`
 
-[![CI](https://github.com/lazhenyi/rift/actions/workflows/ci.yml/badge.svg)](https://github.com/lazhenyi/rift/actions/workflows/ci.yml)
-[![Crates.io](https://img.shields.io/crates/v/rift.svg)](https://crates.io/crates/rift)
+[![CI](https://github.com/lazhenyi/rifts/actions/workflows/ci.yml/badge.svg)](https://github.com/lazhenyi/rifts/actions/workflows/ci.yml)
+[![Crates.io](https://img.shields.io/crates/v/rifts.svg)](https://crates.io/crates/rifts)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE-MIT)
 
-A Rust server implementation of the **Rift Realtime Protocol (Rift/1)** — a modern, real-time
-bidirectional messaging protocol designed to replace raw WebSocket + event-string models with
-stronger semantics, similar to Socket.IO but with explicit guarantees.
-
-## Protocol Specification
-
-Rift/1 is defined by [doc.md](doc.md) in this repository. Key features:
-
-- **Explicit message classes** — event, command, reply, state, datagram, stream, snapshot, system
-- **Reliable offset-based recovery** — reconnect resume via per-topic offsets and snapshots
-- **Schema-first** — every event is typed, validated, and registered
-- **Topic model** — topic profiles with retention, ordering, auth, and fanout policies
-- **Backpressure & flow control** — explicit strategies (pause, drop-volatile, coalesce, downgrade)
-- **Pluggable transports** — WebSocket, WebTransport, native TCP
-- **Structured errors** — stable error codes for all protocol layers
-- **Observability** — built-in counters for connections, messages, latency, and backpressure
+The `rifts` crate is a Rust server implementation of the **Rift Realtime Protocol (Rift/1)** — a modern,
+real-time bidirectional messaging protocol designed to replace raw WebSocket + event-string models
+with stronger semantics, similar to Socket.IO but with explicit guarantees.
 
 ## Crate Features
 
@@ -36,12 +23,12 @@ Rift/1 is defined by [doc.md](doc.md) in this repository. Key features:
 ## Quick Start
 
 ```rust
-use rift::RiftServer;
+use rifts::RiftServer;
 use std::sync::Arc;
 use tokio::sync::Notify;
 
 #[tokio::main]
-async fn main() -> rift::Result<()> {
+async fn main() -> rifts::Result<()> {
     let shutdown = Arc::new(Notify::new());
     let server = RiftServer::builder()
         .websocket_transport()

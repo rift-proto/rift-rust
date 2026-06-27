@@ -1,12 +1,12 @@
 [package]
-name = "rift"
+name = "rifts"
 version = "0.1.0"
 edition = "2024"
 authors = ["Zhenyi <434836402@qq.com>"]
 description = "Rift Realtime Protocol / 1.0 — server-side implementation"
-repository = "https://github.com/lazhenyi/rift"
-homepage = "https://github.com/lazhenyi/rift"
-documentation = "https://docs.rs/rift"
+repository = "https://github.com/lazhenyi/rifts"
+homepage = "https://github.com/lazhenyi/rifts"
+documentation = "https://docs.rs/rifts"
 readme = "README.md"
 license = "MIT OR Apache-2.0"
 keywords = ["realtime", "websocket", "messaging", "pubsub", "protocol"]
