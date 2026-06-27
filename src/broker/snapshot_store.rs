@@ -74,10 +74,10 @@ impl SnapshotStore {
     /// Get a snapshot, returning `None` if it has expired.
     pub fn get(&self, topic: &str) -> Option<StoredSnapshot> {
         let snap = self.inner.read().get(topic).cloned()?;
-        if let Some(expires) = snap.expires_at {
-            if now_ms() > expires {
-                return None;
-            }
+        if let Some(expires) = snap.expires_at
+            && now_ms() > expires
+        {
+            return None;
         }
         Some(snap)
     }

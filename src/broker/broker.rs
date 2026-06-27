@@ -145,10 +145,11 @@ impl InMemoryBroker {
             }));
         }
         // Check message TTL.
-        if let Some(ttl) = frame.ttl_ms {
-            if frame.timestamp > 0 && now_ms() - frame.timestamp > ttl as i64 {
-                return Err(RiftError::Message(MessageReject::Expired));
-            }
+        if let Some(ttl) = frame.ttl_ms
+            && frame.timestamp > 0
+            && now_ms() - frame.timestamp > ttl as i64
+        {
+            return Err(RiftError::Message(MessageReject::Expired));
         }
         Ok((topic, message_id))
     }

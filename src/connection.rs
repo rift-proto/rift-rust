@@ -382,12 +382,13 @@ async fn reader_task(
             }
             FrameType::Data => {
                 // TTL check before dispatching to broker.
-                if let Some(ttl) = frame.ttl_ms {
-                    if frame.timestamp > 0 && now_ms() - frame.timestamp > ttl as i64 {
-                        debug!(conn = conn_id, "message expired (TTL)");
-                        metrics.inc(&metrics.messages_expired_total);
-                        continue;
-                    }
+                if let Some(ttl) = frame.ttl_ms
+                    && frame.timestamp > 0
+                    && now_ms() - frame.timestamp > ttl as i64
+                {
+                    debug!(conn = conn_id, "message expired (TTL)");
+                    metrics.inc(&metrics.messages_expired_total);
+                    continue;
                 }
                 let requires_ack = frame.requires_ack();
                 let msg_id = frame.message_id.clone();
