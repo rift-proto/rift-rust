@@ -168,15 +168,9 @@ impl Connection {
             Arc::new(AsyncMutex::new(Some(transport)));
 
         // Writer task.
-        let rx = self
-            .out_rx
-            .lock()
-            .take()
-            .ok_or_else(|| {
-                RiftError::System(SystemReject::Internal(
-                    "writer already started".into(),
-                ))
-            })?;
+        let rx = self.out_rx.lock().take().ok_or_else(|| {
+            RiftError::System(SystemReject::Internal("writer already started".into()))
+        })?;
         let transport_slot_w = transport_slot.clone();
         let in_flight_w = self.in_flight_bytes.clone();
         let writer_handle = tokio::spawn(async move {
@@ -448,12 +442,11 @@ async fn handle_control(
         .unwrap_or("{}");
 
     // Propagate JSON parse errors rather than silently swallowing them.
-    let v: serde_json::Value =
-        serde_json::from_str(body).map_err(|e| {
-            RiftError::Frame(crate::error::FrameReject::FrameInvalid(format!(
-                "invalid control body: {e}"
-            )))
-        })?;
+    let v: serde_json::Value = serde_json::from_str(body).map_err(|e| {
+        RiftError::Frame(crate::error::FrameReject::FrameInvalid(format!(
+            "invalid control body: {e}"
+        )))
+    })?;
     let ctrl_type = v.get("type").and_then(|x| x.as_str()).unwrap_or("");
 
     match ctrl_type {
@@ -477,10 +470,7 @@ async fn handle_control(
                     RiftError::Frame(crate::error::FrameReject::RequiredFieldMissing("topic"))
                 })?
                 .to_string();
-            let intent_str = v
-                .get("intent")
-                .and_then(|x| x.as_str())
-                .unwrap_or("live");
+            let intent_str = v.get("intent").and_then(|x| x.as_str()).unwrap_or("live");
             let intent = match intent_str {
                 "live" => SubscribeIntent::Live,
                 "passive" => SubscribeIntent::Passive,
@@ -523,8 +513,7 @@ async fn handle_control(
                         "subscription_id",
                     ))
                 })?;
-            let removed = broker
-                .unsubscribe(crate::broker::fanout::SubscriptionId(sub_id))?;
+            let removed = broker.unsubscribe(crate::broker::fanout::SubscriptionId(sub_id))?;
             let reply = serde_json::json!({
                 "type": "unsubscribe_ack",
                 "subscription_id": sub_id,
@@ -618,7 +607,9 @@ fn rift_error_to_code(err: &RiftError) -> &'static str {
             crate::error::FrameReject::SchemaMismatch(_) => {
                 ErrorCode::ProtocolSchemaMismatch.as_str()
             }
-            crate::error::FrameReject::OrderViolation(_) => ErrorCode::ProtocolOrderViolation.as_str(),
+            crate::error::FrameReject::OrderViolation(_) => {
+                ErrorCode::ProtocolOrderViolation.as_str()
+            }
         },
         RiftError::Session(se) => match se {
             crate::error::SessionReject::NotFound(_) => ErrorCode::SessionNotFound.as_str(),
@@ -628,13 +619,17 @@ fn rift_error_to_code(err: &RiftError) -> &'static str {
             crate::error::SessionReject::ReplayOffsetExpired { .. } => {
                 ErrorCode::ReplayOffsetExpired.as_str()
             }
-            crate::error::SessionReject::SnapshotRequired(_) => ErrorCode::SnapshotRequired.as_str(),
+            crate::error::SessionReject::SnapshotRequired(_) => {
+                ErrorCode::SnapshotRequired.as_str()
+            }
         },
         RiftError::Topic(te) => match te {
             crate::error::TopicReject::NotFound(_) => ErrorCode::TopicNotFound.as_str(),
             crate::error::TopicReject::Closed(_) => ErrorCode::TopicClosed.as_str(),
             crate::error::TopicReject::Overloaded(_) => ErrorCode::TopicOverloaded.as_str(),
-            crate::error::TopicReject::SubscriberLimit(_) => ErrorCode::TopicSubscriberLimit.as_str(),
+            crate::error::TopicReject::SubscriberLimit(_) => {
+                ErrorCode::TopicSubscriberLimit.as_str()
+            }
             crate::error::TopicReject::PublisherLimit(_) => ErrorCode::TopicPublisherLimit.as_str(),
             crate::error::TopicReject::Forbidden(_) => ErrorCode::TopicForbidden.as_str(),
             crate::error::TopicReject::RateLimited(_) => ErrorCode::TopicRateLimited.as_str(),

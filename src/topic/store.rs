@@ -111,11 +111,7 @@ impl TopicEntry {
     /// The authoritative offset sequence is managed by `OffsetStore`;
     /// this is derived from the actual log entries.
     pub fn head_offset(&self) -> i64 {
-        self.log
-            .read()
-            .last()
-            .map(|e| e.offset)
-            .unwrap_or(0)
+        self.log.read().last().map(|e| e.offset).unwrap_or(0)
     }
 
     /// Check whether the topic can accept another subscriber.

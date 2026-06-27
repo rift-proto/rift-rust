@@ -98,10 +98,7 @@ impl TransportListener for WebSocketListener {
 async fn accept_with_config(
     stream: TcpStream,
     max_message_size: Option<usize>,
-) -> std::result::Result<
-    WebSocketStream<TcpStream>,
-    tokio_tungstenite::tungstenite::Error,
-> {
+) -> std::result::Result<WebSocketStream<TcpStream>, tokio_tungstenite::tungstenite::Error> {
     if let Some(limit) = max_message_size {
         let config = WebSocketConfig {
             max_message_size: Some(limit),

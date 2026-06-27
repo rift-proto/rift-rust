@@ -95,8 +95,7 @@ impl AuthProvider for TokenAuth {
                 hints: AuthHints::default(),
             });
         }
-        let token = token
-            .ok_or_else(|| RiftError::Auth(crate::error::AuthReject::Required))?;
+        let token = token.ok_or_else(|| RiftError::Auth(crate::error::AuthReject::Required))?;
         self.tokens.read().get(token).cloned().ok_or_else(|| {
             RiftError::Auth(crate::error::AuthReject::Invalid("unknown token".into()))
         })
@@ -191,14 +190,16 @@ mod tests {
                 hints: AuthHints::default(),
             },
         );
-        assert!(auth
-            .authenticate(AuthMode::Bearer, Some("tok-1"))
-            .await
-            .is_ok());
+        assert!(
+            auth.authenticate(AuthMode::Bearer, Some("tok-1"))
+                .await
+                .is_ok()
+        );
         auth.revoke(&client).await.unwrap();
-        assert!(auth
-            .authenticate(AuthMode::Bearer, Some("tok-1"))
-            .await
-            .is_err());
+        assert!(
+            auth.authenticate(AuthMode::Bearer, Some("tok-1"))
+                .await
+                .is_err()
+        );
     }
 }

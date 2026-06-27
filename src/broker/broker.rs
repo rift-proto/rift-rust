@@ -127,14 +127,14 @@ impl InMemoryBroker {
     /// Validate that a frame carries the minimum fields for a publish.
     /// Returns the validated topic and message_id references on success.
     fn validate_publish<'a>(&self, frame: &'a Frame) -> Result<(&'a str, &'a str)> {
-        let topic = frame
-            .topic
-            .as_deref()
-            .ok_or_else(|| RiftError::Frame(crate::error::FrameReject::RequiredFieldMissing("topic")))?;
-        let message_id = frame
-            .message_id
-            .as_deref()
-            .ok_or_else(|| RiftError::Frame(crate::error::FrameReject::RequiredFieldMissing("message_id")))?;
+        let topic = frame.topic.as_deref().ok_or_else(|| {
+            RiftError::Frame(crate::error::FrameReject::RequiredFieldMissing("topic"))
+        })?;
+        let message_id = frame.message_id.as_deref().ok_or_else(|| {
+            RiftError::Frame(crate::error::FrameReject::RequiredFieldMissing(
+                "message_id",
+            ))
+        })?;
         let max = self.max_payload_bytes;
         if let Some(payload) = frame.payload.as_ref()
             && payload.len() > max
@@ -168,7 +168,9 @@ impl Broker for InMemoryBroker {
 
         // Check publisher limit.
         if !route.entry.can_publish() {
-            return Err(RiftError::Topic(TopicReject::PublisherLimit(topic.to_string())));
+            return Err(RiftError::Topic(TopicReject::PublisherLimit(
+                topic.to_string(),
+            )));
         }
         route.entry.inc_publisher();
 
@@ -331,7 +333,11 @@ mod tests {
 
     #[test]
     fn publish_assigns_offset() {
-        let b = InMemoryBroker::new(TopicProfile::default(), Duration::from_secs(60), PAYLOAD_LIMIT);
+        let b = InMemoryBroker::new(
+            TopicProfile::default(),
+            Duration::from_secs(60),
+            PAYLOAD_LIMIT,
+        );
         let out = b.publish(&make_frame("t", "m1", b"hello")).unwrap();
         assert_eq!(out.offset, 1);
         let out2 = b.publish(&make_frame("t", "m2", b"world")).unwrap();
@@ -340,7 +346,11 @@ mod tests {
 
     #[test]
     fn publish_requires_topic_and_message_id() {
-        let b = InMemoryBroker::new(TopicProfile::default(), Duration::from_secs(60), PAYLOAD_LIMIT);
+        let b = InMemoryBroker::new(
+            TopicProfile::default(),
+            Duration::from_secs(60),
+            PAYLOAD_LIMIT,
+        );
         let mut f = make_frame("t", "m1", b"x");
         f.topic = None;
         assert!(b.publish(&f).is_err());
@@ -351,7 +361,11 @@ mod tests {
 
     #[test]
     fn publish_fans_out_to_subscribers() {
-        let b = InMemoryBroker::new(TopicProfile::default(), Duration::from_secs(60), PAYLOAD_LIMIT);
+        let b = InMemoryBroker::new(
+            TopicProfile::default(),
+            Duration::from_secs(60),
+            PAYLOAD_LIMIT,
+        );
         let sink = Arc::new(CountingSink::new(1));
         b.subscribe("t", SubscribeIntent::Live, sink.clone())
             .unwrap();
@@ -361,7 +375,11 @@ mod tests {
 
     #[test]
     fn publish_dedupes_within_window() {
-        let b = InMemoryBroker::new(TopicProfile::default(), Duration::from_secs(60), PAYLOAD_LIMIT);
+        let b = InMemoryBroker::new(
+            TopicProfile::default(),
+            Duration::from_secs(60),
+            PAYLOAD_LIMIT,
+        );
         let sink = Arc::new(CountingSink::new(1));
         b.subscribe("t", SubscribeIntent::Live, sink.clone())
             .unwrap();
@@ -388,7 +406,11 @@ mod tests {
 
     #[test]
     fn subscribe_and_unsubscribe() {
-        let b = InMemoryBroker::new(TopicProfile::default(), Duration::from_secs(60), PAYLOAD_LIMIT);
+        let b = InMemoryBroker::new(
+            TopicProfile::default(),
+            Duration::from_secs(60),
+            PAYLOAD_LIMIT,
+        );
         let s = Arc::new(CountingSink::new(1));
         let id = b.subscribe("t", SubscribeIntent::Live, s.clone()).unwrap();
         assert!(b.unsubscribe(id).unwrap());
@@ -398,7 +420,11 @@ mod tests {
 
     #[test]
     fn drop_sink_removes_all_subs() {
-        let b = InMemoryBroker::new(TopicProfile::default(), Duration::from_secs(60), PAYLOAD_LIMIT);
+        let b = InMemoryBroker::new(
+            TopicProfile::default(),
+            Duration::from_secs(60),
+            PAYLOAD_LIMIT,
+        );
         let s = Arc::new(CountingSink::new(7));
         b.subscribe("a", SubscribeIntent::Live, s.clone()).unwrap();
         b.subscribe("b", SubscribeIntent::Live, s.clone()).unwrap();
