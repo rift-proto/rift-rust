@@ -222,6 +222,100 @@ For users who want in‑process per‑topic parallelism without a network hop:
   and spawns a fresh actor (lazy recreate).
 - `ActorBroker` implements `Broker` by delegating to `TopicRegistry`.
 
+== Flow Control
+
+Two cooperating mechanisms guard the server against overload:
+
+=== BackpressureController
+
+`BackpressureController` (spec §18.1) guards the per‑connection send queue with an
+atomic CAS‑loop enqueue.  When the queue exceeds the high‑water mark (90% of
+`max_send_queue_bytes`), the controller selects a strategy:
+
+[cols="2,5a",options="header"]
+|===
+| Strategy | Behaviour
+
+| `Pause` (default)
+| Caller spins with `tokio::time::sleep` until capacity frees.
+
+| `DropVolatile`
+| Messages with `Priority::Volatile` or `Priority::Background` are discarded.
+
+| `CoalesceState`
+| State messages for the same `state_key` are collapsed to the latest.
+
+| `Downgrade`
+| All messages are deferred; the writer is throttled.
+
+| `Disconnect`
+| The slow consumer is kicked with `CloseCode::SlowConsumer`.
+
+| `SnapshotLater`
+| The connection switches to periodic snapshot polling instead of live messages.
+|===
+
+Each controller tracks local counters (`applied`, `dropped`, `slow_consumer`,
+`flow_pause`) which feed into the process-wide `Metrics`.
+
+=== RateLimiter
+
+`RateLimiter` (spec §18.2) is a standard token‑bucket implementation used at two
+levels:
+
+- *Per‑connection*: limits the inbound publish rate from a single client.
+- *Per‑topic*: limits the aggregate publish rate to a single topic (configured
+  via `TopicProfile::rate_limit`).
+
+[source,rust]
+----
+let limiter = RateLimiter::new(1_000, 2_000); // 1 000 msg/s, burst 2 000
+if limiter.try_take() {
+    // proceed
+} else {
+    // reject or back-off
+}
+----
+
+== Metrics (spec §23.2)
+
+`Metrics` is a process‑wide set of `AtomicU64` counters.  In production you would
+export them to Prometheus or OTLP; the structure mirrors the spec so the mapping is
+straightforward.
+
+[cols="2,5a",options="header"]
+|===
+| Category | Counters
+
+| Connections
+| `active_connections`, `connection_open_total`, `connection_close_total`,
+  `reconnect_total`, `resume_success_total`, `resume_failed_total`,
+  `heartbeat_timeout_total`
+
+| Messages
+| `messages_in_total`, `messages_out_total`, `messages_dropped_total`,
+  `messages_replayed_total`, `messages_expired_total`, `ack_timeout_total`,
+  `duplicate_total`
+
+| Backpressure
+| `send_queue_depth`, `recv_queue_depth`, `slow_consumer_total`,
+  `flow_pause_total`, `flow_resume_total`, `volatile_drop_total`,
+  `state_coalesce_total`
+|===
+
+All counters use `Ordering::Relaxed` — they are approximate by design and intended
+for monitoring dashboards, not control flow.
+
+== Trace Context (spec §23.1)
+
+`TraceContext` carries distributed‑trace metadata across frames.  Each context
+holds an optional `trace_id`, `span_id`, `parent_span_id`, and a `sampled` flag.
+Ids are ULIDs (time‑sortable).  `TraceContext::new_root()` creates a new trace;
+`context.child()` creates a child span sharing the same `trace_id`.
+
+When the `TRACE` frame flag is set, the payload may include trace context fields
+in the header.
+
 == Persistence Layer
 
 [cols="2,5a",options="header"]
@@ -277,35 +371,6 @@ pub enum RiftError {
 
 Large error sources (tungstenite, ciborium, serde_json) are boxed inside a `BoxedStdError`
 wrapper so the `Result` type stays small on the stack.
-
-== Backpressure
-
-`BackpressureController` guards the per‑connection send queue with an atomic CAS‑loop
-enqueue.  When the queue exceeds the high‑water mark (90% of `max_send_queue_bytes`),
-the controller selects a strategy:
-
-[cols="2,5a",options="header"]
-|===
-| Strategy | Behaviour
-
-| `Pause`
-| Caller spins with `tokio::time::sleep` until capacity frees.
-
-| `DropVolatile`
-| Messages with `Priority::Volatile` or `Priority::Background` are discarded.
-
-| `CoalesceState`
-| State messages for the same `state_key` are collapsed to the latest.
-
-| `Downgrade`
-| All messages are deferred; the writer is throttled.
-
-| `Disconnect`
-| The slow consumer is kicked with `CloseCode::SlowConsumer`.
-
-| `SnapshotLater`
-| The connection switches to periodic snapshot polling instead of live messages.
-|===
 
 == Testing
 
