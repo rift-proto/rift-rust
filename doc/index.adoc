@@ -1,6 +1,6 @@
 = Rift Realtime Protocol / 1.0 (rifts)
 Zhenyi <434836402@qq.com>
-v0.1.0, 2025-06-28
+v0.2.0, 2026-06-28
 :toc: left
 :toclevels: 3
 :sectanchors:

@@ -1,6 +1,6 @@
 [package]
 name = "rifts"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2024"
 authors = ["Zhenyi <434836402@qq.com>"]
 description = "Rift Realtime Protocol / 1.0 — server-side implementation"
