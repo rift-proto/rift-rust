@@ -61,9 +61,13 @@ impl RemoteBroker {
         let sinks_r = sinks.clone();
         let reader_handle = tokio::spawn(async move {
             while let Some(msg_result) = framed_reader.next().await {
-                let Ok(msg) = msg_result else { break; };
+                let Ok(msg) = msg_result else {
+                    break;
+                };
                 match msg {
-                    WireMsg::Deliver { sink_id, payload, .. } => {
+                    WireMsg::Deliver {
+                        sink_id, payload, ..
+                    } => {
                         if let Some(tx) = sinks_r.get(&sink_id) {
                             let _ = tx.send(payload).await;
                         }
@@ -107,9 +111,10 @@ impl RemoteBroker {
 
         // Write the framed request.
         let mut framed = self.framed.lock().await;
-        framed.send(msg).await.map_err(|e| {
-            RiftError::System(SystemReject::Internal(format!("send: {e}")))
-        })?;
+        framed
+            .send(msg)
+            .await
+            .map_err(|e| RiftError::System(SystemReject::Internal(format!("send: {e}"))))?;
         drop(framed);
 
         // Wait for response.
@@ -139,9 +144,9 @@ impl Broker for RemoteBroker {
             .await?;
         match resp {
             WireMsg::PublishResult { outcome } => Ok(outcome),
-            WireMsg::Error { code, message } => Err(RiftError::System(
-                SystemReject::Internal(format!("broker error: {code} — {message}")),
-            )),
+            WireMsg::Error { code, message } => Err(RiftError::System(SystemReject::Internal(
+                format!("broker error: {code} — {message}"),
+            ))),
             _ => Err(RiftError::System(SystemReject::Internal(
                 "unexpected broker response".into(),
             ))),
@@ -176,9 +181,9 @@ impl Broker for RemoteBroker {
             .await?;
         match resp {
             WireMsg::SubscribeResult { id } => Ok(SubscriptionId(id)),
-            WireMsg::Error { code, message } => Err(RiftError::System(
-                SystemReject::Internal(format!("broker error: {code} — {message}")),
-            )),
+            WireMsg::Error { code, message } => Err(RiftError::System(SystemReject::Internal(
+                format!("broker error: {code} — {message}"),
+            ))),
             _ => Err(RiftError::System(SystemReject::Internal(
                 "unexpected broker response".into(),
             ))),
@@ -206,9 +211,9 @@ impl Broker for RemoteBroker {
             .await?;
         match resp {
             WireMsg::ReplayResult { entries } => Ok(entries),
-            WireMsg::Error { code, message } => Err(RiftError::System(
-                SystemReject::Internal(format!("broker error: {code} — {message}")),
-            )),
+            WireMsg::Error { code, message } => Err(RiftError::System(SystemReject::Internal(
+                format!("broker error: {code} — {message}"),
+            ))),
             _ => Err(RiftError::System(SystemReject::Internal(
                 "unexpected broker response".into(),
             ))),

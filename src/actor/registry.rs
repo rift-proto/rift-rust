@@ -96,10 +96,7 @@ impl<
     /// reverse indices. Call after the actor confirms `Subscribe`.
     pub fn register_subscription(&self, sid: SubscriptionId, topic: &str, sink_id: u64) {
         self.sub_to_topic.insert(sid, topic.to_string());
-        self.sink_to_subs
-            .entry(sink_id)
-            .or_default()
-            .insert(sid);
+        self.sink_to_subs.entry(sink_id).or_default().insert(sid);
     }
 
     /// Look up the topic a subscription id belongs to.

@@ -67,11 +67,9 @@ impl<
             intent,
             reply_to: tx,
         })?;
-        let id = rx
-            .await
-            .map_err(|_| {
-                RiftError::System(crate::error::SystemReject::Internal("actor died".into()))
-            })??;
+        let id = rx.await.map_err(|_| {
+            RiftError::System(crate::error::SystemReject::Internal("actor died".into()))
+        })??;
         // Record the subscription in the registry's reverse indices so
         // `unsubscribe` / `drop_sink` / `subscriber_count` can locate
         // the right actor without a broadcast.
@@ -86,11 +84,9 @@ impl<
         let actor = self.registry.get_or_spawn(&topic);
         let (tx, rx) = oneshot::channel();
         actor.send(TopicMsg::Unsubscribe { id, reply_to: tx })?;
-        let removed = rx
-            .await
-            .map_err(|_| RiftError::System(crate::error::SystemReject::Internal(
-                "actor died".into(),
-            )))??;
+        let removed = rx.await.map_err(|_| {
+            RiftError::System(crate::error::SystemReject::Internal("actor died".into()))
+        })??;
         if removed {
             self.registry.unregister_subscription(&id);
         }

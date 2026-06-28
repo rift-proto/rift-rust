@@ -101,7 +101,9 @@ impl RiftServerBuilder {
     pub fn websocket_transport(mut self) -> Self {
         // Placeholder; the real factory is constructed in `build()`
         // with the current `config.max_payload_bytes`.
-        self.transport = Some(Arc::new(WebSocketFactory { max_message_size: 0 }));
+        self.transport = Some(Arc::new(WebSocketFactory {
+            max_message_size: 0,
+        }));
         self
     }
 
