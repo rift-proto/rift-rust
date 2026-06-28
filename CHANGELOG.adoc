@@ -1,0 +1,84 @@
+= Changelog
+
+== [0.3.1] — 2026-06-28
+
+=== Documentation
+
+* **Architecture** — flow control section expanded with `RateLimiter`
+  alongside `BackpressureController`; metrics and trace context
+  sections added.
+* **Protocol reference** — heartbeat policy, version negotiation,
+  subscribe modes, and priority levels documented.
+* **Examples** — custom `TopicProfile`, Prometheus metrics export,
+  per-connection rate limiting, and trace context propagation examples
+  added.
+
+== [0.2.1] — 2026-06-28
+
+=== Fixed
+
+* **sled feature** — 52 compilation errors in sled-backed storage resolved.
+  Missing `StorageEngine` trait imports and `encode` module paths fixed
+  across `dedupe`, `log`, `offset`, and `snapshot` sled implementations.
+* **clippy** — all allow flags removed; `large_enum_variant` fixed by
+  boxing `WireTopicMsg::Publish.frame`; `module_inception` allow moved to
+  correct module; `collapsible_if` resolved with let-chains.
+* **CI** — build matrix now covers `sled` and `sled,websocket` features;
+  test and lint jobs use `--all-features`.
+
+=== Added
+
+* **Example** — `examples/websocket_server.rs` with `tracing-subscriber`
+  dev-dependency.
+
+== [0.2.0] — 2026-06-28
+
+=== Added
+
+* **Persistence layer** — pluggable storage traits (`StorageEngine`, `LogStore`,
+  `OffsetStore`, `DedupeStore`, `SnapshotStore`) with full `sled` backend
+  implementation.  Enables durable topic data across restarts.  https://github.com/rift-proto/rifts/commit/3baf2dc[[3baf2dc\]]
+* **RemoteBroker** — async `Broker` trait + TCP-based remote broker for
+  distributing messages across process boundaries.  https://github.com/rift-proto/rifts/commit/e7972ff[[e7972ff\]]
+* **Actor runtime** — `TopicActor`, `TopicRegistry`, `LocalActorRef`,
+  `ActorBroker` providing actor-based broker topology for complex routing
+  scenarios.  https://github.com/rift-proto/rifts/commit/7ed2799[[7ed2799\]]
+
+=== Fixed
+
+* **CI** — clippy warnings resolved, `--D warnings` now passing with allow
+  flags for `large_enum_variant` and `module_inception`.  https://github.com/rift-proto/rifts/commit/038d50b[[038d50b\]],
+  https://github.com/rift-proto/rifts/commit/f0b4261[[f0b4261\]],
+  https://github.com/rift-proto/rifts/commit/3011b0b[[3011b0b\]],
+  https://github.com/rift-proto/rifts/commit/7aad374[[7aad374\]]
+* **Doc links** — all intra-crate doc links corrected, including sled-gated
+  type references that were broken in default (non-sled) builds.  https://github.com/rift-proto/rifts/commit/3011b0b[[3011b0b\]]
+
+=== Documentation
+
+* Full architecture guide, getting-started, protocol reference, and examples
+  rewritten for the v0.2 module structure (72 files, four-layer model).
+  https://github.com/rift-proto/rifts/commit/653013d[[653013d\]]
+
+== [0.1.0] — 2025-06-28
+
+Initial release — section 29 minimum compliant implementation of Rift
+Realtime Protocol / 1.0.
+
+=== Features
+
+* Frame envelope, types, flags, codec, priority
+* CBOR + JSON codecs with protocol-level negotiation
+* Eight message classes (event, command, reply, state, snapshot, datagram,
+  stream, ack)
+* Topic profiles, retention policies, ordering policies, in-memory topic store
+* Session lifecycle, token auth, resume, offset tracking
+* In-memory broker with router, fanout, dedupe, snapshots
+* Nine acknowledgement types
+* Backpressure controller + token-bucket rate limiter
+* Transport abstraction + standalone WebSocket transport (tokio-tungstenite)
+* Framework adapters: axum, actix-web, warp, ntex
+* `RiftServer` builder and event loop
+* Connection state machine (spec §5 lifecycle)
+* Metrics collection
+* Structured logging via `tracing`
