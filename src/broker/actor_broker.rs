@@ -1,5 +1,5 @@
 //! Actor-based broker — implements [`Broker`] by delegating to a
-//! [`TopicRegistry`](crate::actor::TopicRegistry).
+//! [`TopicRegistry`].
 //!
 //! Each topic is an independent actor task.  Publishes to different
 //! topics execute concurrently.

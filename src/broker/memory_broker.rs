@@ -25,13 +25,13 @@ use crate::topic::store::LogEntry;
 /// Single-process broker, generic over storage backends.
 ///
 /// Type parameters correspond to the four persistence traits:
-/// - `O`: [`OffsetStore`](crate::storage::OffsetStore) — per-topic offset allocation
-/// - `L`: [`LogStore`](crate::storage::LogStore) — append + range-query message log
-/// - `D`: [`DedupeStore`](crate::storage::DedupeStore) — deduplication
-/// - `S`: [`SnapshotStore`](crate::storage::SnapshotStore) — snapshot capture and retrieval
+/// - `O`: [`OffsetStore`] — per-topic offset allocation
+/// - `L`: [`LogStore`] — append + range-query message log
+/// - `D`: [`DedupeStore`] — deduplication
+/// - `S`: [`SnapshotStore`] — snapshot capture and retrieval
 ///
 /// Use the type aliases for common configurations:
-/// - [`DefaultBroker`](DefaultBroker) — all memory-backed (development)
+/// - [`DefaultBroker`] — all memory-backed (development)
 /// - `SledBroker` — all sled-backed (production, feature `sled`)
 pub struct InMemoryBroker<O, L, D, S> {
     /// In-memory topic metadata store.
