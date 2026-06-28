@@ -1,5 +1,38 @@
 = Changelog
 
+== [0.3.3] — 2026-06-29
+
+=== Added
+
+* **SessionStore** — cross-connection session persistence enabling
+  clients to resume sessions after reconnecting.  `RiftServerBuilder`
+  now accepts a pre-populated `SessionStore` and shared
+  `ResumeManager`.
+* **Replay on resume** — missed messages are replayed to the client
+  during handshake for `Partial` and `Replaying` resume outcomes.
+
+=== Changed
+
+* **Handshake** — session lookup via `SessionStore`; epoch validation
+  and conflicting-connection detection; negotiated codec stored on
+  the connection for consistent encoding.
+* **Subscribe intents** — `snapshot_then_live` and `replay` modes
+  added to control frame handling.
+* **Welcome frame** — includes `negotiated_codec` and `resume_result`
+  fields.
+
+=== Fixed
+
+* Repository URLs updated to `rift-proto` organization.
+* Code formatting normalization across `messages.rs`, `wire.rs`,
+  and `error_code.rs`.
+
+== [0.3.2] — 2026-06-28
+
+=== Documentation
+
+* README and CHANGELOG converted from Markdown to AsciiDoc.
+
 == [0.3.1] — 2026-06-28
 
 === Documentation
