@@ -1,6 +1,6 @@
 # Rift Realtime Protocol / 1.0 — `rifts`
 
-[![CI](https://github.com/lazhenyi/rifts/actions/workflows/ci.yml/badge.svg)](https://github.com/lazhenyi/rifts/actions/workflows/ci.yml)
+[![CI](https://github.com/rift-proto/rifts/actions/workflows/ci.yml/badge.svg)](https://github.com/rift-proto/rifts/actions/workflows/ci.yml)
 [![Crates.io](https://img.shields.io/crates/v/rifts.svg)](https://crates.io/crates/rifts)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE-MIT)
 

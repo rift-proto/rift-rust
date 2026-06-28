@@ -57,7 +57,7 @@
 //! | [`trace`] | Lightweight distributed tracing context |
 //! | [`transport`] | Transport-layer abstraction and framework adapters |
 //!
-//! [spec]: https://github.com/lazhenyi/rift-protocol
+//! [spec]: https://github.com/rift-proto/rifts
 
 #![forbid(unsafe_code)]
 #![deny(unreachable_pub)]

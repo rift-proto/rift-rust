@@ -58,14 +58,14 @@
   rewritten for the v0.2 module structure (72 files, four-layer model).
   ([653013d])
 
-[3baf2dc]: https://github.com/lazhenyi/rifts/commit/3baf2dc
-[e7972ff]: https://github.com/lazhenyi/rifts/commit/e7972ff
-[7ed2799]: https://github.com/lazhenyi/rifts/commit/7ed2799
-[038d50b]: https://github.com/lazhenyi/rifts/commit/038d50b
-[f0b4261]: https://github.com/lazhenyi/rifts/commit/f0b4261
-[3011b0b]: https://github.com/lazhenyi/rifts/commit/3011b0b
-[7aad374]: https://github.com/lazhenyi/rifts/commit/7aad374
-[653013d]: https://github.com/lazhenyi/rifts/commit/653013d
+[3baf2dc]: https://github.com/rift-proto/rifts/commit/3baf2dc
+[e7972ff]: https://github.com/rift-proto/rifts/commit/e7972ff
+[7ed2799]: https://github.com/rift-proto/rifts/commit/7ed2799
+[038d50b]: https://github.com/rift-proto/rifts/commit/038d50b
+[f0b4261]: https://github.com/rift-proto/rifts/commit/f0b4261
+[3011b0b]: https://github.com/rift-proto/rifts/commit/3011b0b
+[7aad374]: https://github.com/rift-proto/rifts/commit/7aad374
+[653013d]: https://github.com/rift-proto/rifts/commit/653013d
 
 ## [0.1.0] — 2025-06-28
 
