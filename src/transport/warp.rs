@@ -30,7 +30,9 @@ use crate::error::{Result, RiftError};
 use crate::frame::Frame;
 use crate::protocol::close::CloseCode;
 use crate::transport::TransportConnection;
-use crate::transport::frame_codec::{decode_binary_frame, decode_text_frame, encode_frame};
+use crate::transport::frame_codec::{
+    DEFAULT_MAX_BINARY_PAYLOAD, decode_binary_frame, decode_text_frame, encode_frame,
+};
 
 /// A Warp WebSocket connection adapted for the Rift protocol.
 ///
@@ -109,7 +111,7 @@ impl TransportConnection for WarpWsConnection {
                 return decode_text_frame(text.as_bytes());
             }
             if msg.is_binary() {
-                return decode_binary_frame(&msg.into_bytes());
+                return decode_binary_frame(&msg.into_bytes(), DEFAULT_MAX_BINARY_PAYLOAD);
             }
             if msg.is_ping() || msg.is_pong() {
                 continue;

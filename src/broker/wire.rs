@@ -268,7 +268,20 @@ pub enum WireMsg {
 /// available) and frame boundary detection. It returns
 /// [`RiftError::Frame`] with [`FrameReject::FrameInvalid`] if the
 /// CBOR payload cannot be deserialized.
-pub struct WireCodec;
+pub const DEFAULT_MAX_FRAME_SIZE: usize = 16 * 1024 * 1024;
+pub struct WireCodec {
+    /// Maximum allowed payload size in bytes. Frames declaring a
+    /// length greater than this are rejected with `PayloadTooLarge`.
+    pub max_frame_size: usize,
+}
+
+impl Default for WireCodec {
+    fn default() -> Self {
+        Self {
+            max_frame_size: DEFAULT_MAX_FRAME_SIZE,
+        }
+    }
+}
 
 impl Decoder for WireCodec {
     type Item = WireMsg;
@@ -284,6 +297,15 @@ impl Decoder for WireCodec {
             return Ok(None);
         }
         let len = u32::from_be_bytes([buf[0], buf[1], buf[2], buf[3]]) as usize;
+        // Reject oversized frames before allocating. A malicious peer
+        // could otherwise send a length prefix up to 4 GiB and force a
+        // large allocation once the data arrived.
+        if len > self.max_frame_size {
+            return Err(RiftError::Frame(FrameReject::PayloadTooLarge {
+                actual: len,
+                max: self.max_frame_size,
+            }));
+        }
         if buf.len() < 4 + len {
             return Ok(None);
         }
@@ -322,7 +344,7 @@ mod tests {
 
     #[test]
     fn round_trip_publish() {
-        let mut codec = WireCodec;
+        let mut codec = WireCodec::default();
         let msg = WireMsg::Publish {
             frame: Frame {
                 topic: Some("t".into()),
@@ -347,7 +369,7 @@ mod tests {
 
     #[test]
     fn round_trip_publish_result() {
-        let mut codec = WireCodec;
+        let mut codec = WireCodec::default();
         let msg = WireMsg::PublishResult {
             outcome: PublishOutcome {
                 offset: 42,

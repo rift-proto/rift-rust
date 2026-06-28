@@ -57,13 +57,22 @@ pub fn encode_frame(frame: &Frame) -> Result<Bytes> {
     Ok(buf.freeze())
 }
 
+/// Default maximum binary-frame payload size (16 MiB). Frames
+/// declaring a larger payload are rejected with
+/// `FrameReject::PayloadTooLarge` before allocation to prevent a
+/// malicious peer from forcing huge allocations.
+pub const DEFAULT_MAX_BINARY_PAYLOAD: usize = 16 * 1024 * 1024;
+
 /// Decode a binary frame from the wire format.
 ///
 /// The input buffer must be at least 24 bytes long (the fixed header).
 /// The payload length is read from the header and the buffer must
 /// contain the full payload. Returns a structured [`FrameReject`] error
 /// on malformed or truncated input.
-pub fn decode_binary_frame(buf: &[u8]) -> Result<Frame> {
+///
+/// `max_payload_len` caps the declared payload size; pass
+/// `DEFAULT_MAX_BINARY_PAYLOAD` for the default.
+pub fn decode_binary_frame(buf: &[u8], max_payload_len: usize) -> Result<Frame> {
     if buf.len() < 24 {
         return Err(RiftError::Frame(FrameReject::FrameInvalid(format!(
             "binary frame too short: {}",
@@ -83,6 +92,12 @@ pub fn decode_binary_frame(buf: &[u8]) -> Result<Frame> {
         buf[12], buf[13], buf[14], buf[15], buf[16], buf[17], buf[18], buf[19],
     ]);
     let payload_len = u32::from_be_bytes([buf[20], buf[21], buf[22], buf[23]]) as usize;
+    if payload_len > max_payload_len {
+        return Err(RiftError::Frame(FrameReject::PayloadTooLarge {
+            actual: payload_len,
+            max: max_payload_len,
+        }));
+    }
     if buf.len() < 24 + payload_len {
         return Err(RiftError::Frame(FrameReject::FrameInvalid(format!(
             "payload truncated: want {}, have {}",
@@ -207,7 +222,7 @@ mod tests {
             payload: Some(Bytes::from_static(b"hi")),
         };
         let bytes = encode_frame(&f).unwrap();
-        let back = decode_binary_frame(&bytes).unwrap();
+        let back = decode_binary_frame(&bytes, DEFAULT_MAX_BINARY_PAYLOAD).unwrap();
         assert_eq!(back.frame_id, 42);
         assert_eq!(back.frame_type, FrameType::Data);
         assert_eq!(back.codec, FrameCodec::Cbor);
@@ -217,7 +232,7 @@ mod tests {
 
     #[test]
     fn binary_too_short() {
-        let r = decode_binary_frame(&[0u8; 5]);
+        let r = decode_binary_frame(&[0u8; 5], DEFAULT_MAX_BINARY_PAYLOAD);
         assert!(r.is_err());
     }
 

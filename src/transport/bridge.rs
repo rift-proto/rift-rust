@@ -33,7 +33,9 @@ use crate::error::{Result, RiftError};
 use crate::frame::Frame;
 use crate::protocol::close::CloseCode;
 use crate::transport::TransportConnection;
-use crate::transport::frame_codec::{decode_binary_frame, decode_text_frame, encode_frame};
+use crate::transport::frame_codec::{
+    DEFAULT_MAX_BINARY_PAYLOAD, decode_binary_frame, decode_text_frame, encode_frame,
+};
 
 /// A transport connection backed by tokio mpsc channels.
 ///
@@ -133,7 +135,7 @@ impl TransportConnection for BridgeConnection {
         // b'T' → text frame   (decode_text_frame)
         // b'C' → close
         match raw.first() {
-            Some(b'B') => decode_binary_frame(&raw[1..]),
+            Some(b'B') => decode_binary_frame(&raw[1..], DEFAULT_MAX_BINARY_PAYLOAD),
             Some(b'T') => decode_text_frame(&raw[1..]),
             Some(b'C') => Err(RiftError::Session(crate::error::SessionReject::Expired)),
             _ => Err(RiftError::other(std::io::Error::new(

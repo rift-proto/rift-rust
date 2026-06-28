@@ -32,7 +32,9 @@ use crate::error::{Result, RiftError};
 use crate::frame::Frame;
 use crate::protocol::close::CloseCode;
 use crate::transport::TransportConnection;
-use crate::transport::frame_codec::{decode_binary_frame, decode_text_frame, encode_frame};
+use crate::transport::frame_codec::{
+    DEFAULT_MAX_BINARY_PAYLOAD, decode_binary_frame, decode_text_frame, encode_frame,
+};
 
 /// An Axum WebSocket connection adapted for the Rift protocol.
 ///
@@ -96,7 +98,9 @@ impl TransportConnection for AxumWsConnection {
                 .map_err(RiftError::other)?;
             match msg {
                 Message::Text(text) => return decode_text_frame(text.as_bytes()),
-                Message::Binary(bin) => return decode_binary_frame(&bin),
+                Message::Binary(bin) => {
+                    return decode_binary_frame(&bin, DEFAULT_MAX_BINARY_PAYLOAD);
+                }
                 Message::Ping(_) | Message::Pong(_) => continue,
                 Message::Close(_) => {
                     return Err(RiftError::Session(crate::error::SessionReject::Expired));

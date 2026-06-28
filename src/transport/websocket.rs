@@ -30,7 +30,9 @@ use tokio_tungstenite::{WebSocketStream, accept_async, accept_async_with_config}
 use crate::error::{BoxedStdError, Result, RiftError};
 use crate::frame::Frame;
 use crate::protocol::close::CloseCode;
-use crate::transport::frame_codec::{decode_binary_frame, decode_text_frame, encode_frame};
+use crate::transport::frame_codec::{
+    DEFAULT_MAX_BINARY_PAYLOAD, decode_binary_frame, decode_text_frame, encode_frame,
+};
 use crate::transport::{Transport, TransportConnection, TransportListener};
 
 /// The standalone WebSocket transport, backed by `tokio-tungstenite`.
@@ -211,7 +213,7 @@ impl TransportConnection for WebSocketConnection {
                     return decode_text_frame(text.as_bytes());
                 }
                 WsMessage::Binary(bin) => {
-                    return decode_binary_frame(&bin);
+                    return decode_binary_frame(&bin, DEFAULT_MAX_BINARY_PAYLOAD);
                 }
                 WsMessage::Ping(_) | WsMessage::Pong(_) => continue,
                 WsMessage::Close(_close) => {
