@@ -20,6 +20,7 @@ use bytes::Bytes;
 use serde::{Deserialize, Serialize};
 
 use crate::error::{MessageReject, Result, RiftError};
+use crate::now_ms;
 
 /// A request-style command -- an RPC request sent to the server or a peer.
 ///
@@ -110,7 +111,7 @@ impl Reply {
             status: ReplyStatus::Ok,
             payload: Some(payload),
             error: None,
-            server_time: 0,
+            server_time: now_ms(),
         }
     }
 
@@ -131,7 +132,7 @@ impl Reply {
                 code: code.into(),
                 message: message.into(),
             }),
-            server_time: 0,
+            server_time: now_ms(),
         }
     }
 }
