@@ -72,10 +72,7 @@
   `OffsetStore`, `DedupeStore`, `SnapshotStore`) with full `sled` backend
   implementation.  Enables durable topic data across restarts.  https://github.com/rift-proto/rifts/commit/3baf2dc[[3baf2dc\]]
 * **RemoteBroker** — async `Broker` trait + TCP-based remote broker for
-  distributing messages across process boundaries.  https://github.com/rift-proto/rifts/commit/e7972ff[[e7972ff\]]
-* **Actor runtime** — `TopicActor`, `TopicRegistry`, `LocalActorRef`,
-  `ActorBroker` providing actor-based broker topology for complex routing
-  scenarios.  https://github.com/rift-proto/rifts/commit/7ed2799[[7ed2799\]]
+  distributing messages across process boundaries (removed in v0.4).  https://github.com/rift-proto/rifts/commit/e7972ff[[e7972ff]]
 
 === Fixed
 
