@@ -8,12 +8,17 @@ use crate::storage::LogStore;
 use crate::topic::retention::RetentionPolicy;
 use crate::topic::store::LogEntry;
 
+/// Redis-backed message log store using Sorted Sets.
+///
+/// Each topic's log is stored as a Redis Sorted Set keyed by offset, enabling
+/// efficient range queries for replay scenarios.
 #[derive(Clone)]
 pub struct RedisLogStore {
     pool: RedisPool,
 }
 
 impl RedisLogStore {
+    /// Create a new [`RedisLogStore`] backed by the given Redis connection pool.
     pub fn new(pool: RedisPool) -> Self {
         Self { pool }
     }
