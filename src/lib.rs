@@ -60,6 +60,7 @@
 
 #![forbid(unsafe_code)]
 #![deny(unreachable_pub)]
+#![deny(missing_docs)]
 #![warn(rust_2018_idioms)]
 
 // ── Module declarations ──────────────────────────────────────────────────────
