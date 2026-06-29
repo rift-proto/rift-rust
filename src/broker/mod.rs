@@ -10,13 +10,8 @@
 //!
 //! The central abstraction is the [`Broker`] trait, which defines the
 //! full set of topic-level operations (publish, subscribe, replay, etc.)
-//! as async methods.  Three concrete implementations are provided:
-//!
-//! | Implementation | Use case |
-//! |---|---|
-//! | [`InMemoryBroker`] | Single-process, all storage in memory. Ideal for development and testing. |
-//! | [`RemoteBroker`] | Connects to an external broker node over TCP using the [`wire`] protocol. |
-//! | [`ActorBroker`] | Each topic is an independent Tokio actor task; publishes to different topics run concurrently. |
+//! as async methods. The primary implementation is [`InMemoryBroker`],
+//! a single-process broker with pluggable storage backends.
 //!
 //! # Key components
 //!
@@ -31,30 +26,20 @@
 //! - **[`offset_store`]** — A per-topic monotonic offset allocator.
 //! - **[`snapshot_store`]** — Captures and retrieves per-topic snapshots.
 //! - **[`wire`]** — The framed TCP wire protocol used between gateway and
-//!   broker nodes.
+//!   broker nodes ([`GatewayMsg`], [`GatewayCodec`]).
 //! - **[`memory_broker`]** — The generic [`InMemoryBroker`] struct that wires
 //!   all the above components together.
-//! - **[`remote_broker`]** — TCP-based distributed broker client.
-//! - **[`actor_broker`]** — Actor-based broker that delegates to a
-//!   [`TopicRegistry`](crate::actor::TopicRegistry).
 //!
 //! [`TopicEntry`]: crate::topic::TopicEntry
 
-pub mod actor_broker;
-#[allow(clippy::module_inception)]
 pub mod broker;
 pub mod dedupe;
 pub mod fanout;
 pub mod memory_broker;
 pub mod offset_store;
-pub mod remote_broker;
 pub mod router;
 pub mod snapshot_store;
 pub mod wire;
-
-/// Actor-backed broker implementation that delegates each topic to an
-/// independent Tokio actor task.
-pub use actor_broker::ActorBroker;
 
 /// The core broker trait and supporting types.
 pub use broker::{Broker, BrokerSubscription, PublishOutcome, serialize_frame_for_fanout};
@@ -75,11 +60,11 @@ pub use memory_broker::InMemoryBroker;
 /// Per-topic monotonic offset allocator.
 pub use offset_store::OffsetStore;
 
-/// TCP-based remote broker client.
-pub use remote_broker::RemoteBroker;
-
 /// Topic routing layer (local and future distributed).
 pub use router::{LocalRouter, Route, TopicRouter};
 
 /// Snapshot persistence types.
 pub use snapshot_store::{SharedSnapshotStore, SnapshotStore, StoredSnapshot};
+
+/// Gateway-to-broker wire protocol types.
+pub use wire::{GatewayCodec, GatewayMsg};
