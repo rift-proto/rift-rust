@@ -125,23 +125,22 @@ impl ResumeManager {
     ///
     /// # Errors
     ///
-    /// Returns an error if the session is expired or if the epoch does
-    /// not match.
+    /// Returns an error if the session is expired.
+    ///
+    /// **Note**: epoch validation is performed by the caller
+    /// ([`Connection::handshake`]) *before* the epoch is bumped for the
+    /// new incarnation, so this method does not repeat the check.
+    /// Passing the bumped epoch here would trivially match
+    /// `session.current_epoch()` and make the check a no-op.
     pub fn evaluate(
         &self,
         session: &Session,
-        incoming_epoch: u32,
+        _server_epoch: u32,
         last_offsets: &HashMap<String, i64>,
         topic_offsets: &HashMap<String, i64>,
     ) -> Result<ResumeOutcome> {
         if !session.is_alive() {
             return Err(RiftError::Session(SessionReject::Expired));
-        }
-        if incoming_epoch != session.current_epoch() {
-            return Err(RiftError::Session(SessionReject::Conflict {
-                incoming: incoming_epoch,
-                current: session.current_epoch(),
-            }));
         }
         Ok(decide(last_offsets, topic_offsets).into())
     }
@@ -178,7 +177,10 @@ mod tests {
     use crate::topic::profile::TopicProfile;
 
     #[test]
-    fn epoch_mismatch_rejected() {
+    fn evaluate_no_longer_checks_epoch() {
+        // Epoch validation moved to Connection::handshake (performed
+        // *before* bump_epoch), so evaluate accepts any _server_epoch
+        // value without error.
         let m = ResumeManager::new();
         let s = Session::new(
             crate::session::session::SessionId::new(),
@@ -189,11 +191,10 @@ mod tests {
         last.insert("t".into(), 1);
         let mut head = HashMap::new();
         head.insert("t".into(), 5);
+        // Passing a mismatched epoch should now succeed — the caller is
+        // responsible for epoch validation before bumping.
         let r = m.evaluate(&s, 1, &last, &head);
-        assert!(matches!(
-            r,
-            Err(RiftError::Session(SessionReject::Conflict { .. }))
-        ));
+        assert!(r.is_ok());
     }
 
     #[test]

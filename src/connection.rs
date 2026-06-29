@@ -513,7 +513,7 @@ impl Connection {
                     }
                     let outcome = match self.resume.evaluate(
                         &existing,
-                        existing.current_epoch(),
+                        incoming_epoch,
                         &last_offsets,
                         &topic_offsets,
                     ) {

@@ -295,6 +295,12 @@ impl FanoutEngine {
         if let Some((_, (topic, sink))) = self.by_id.remove(&id) {
             if let Some(mut list) = self.by_topic.get_mut(&topic) {
                 list.retain(|(sid, _)| *sid != id);
+                // Clean up the topic entry when no subscribers remain,
+                // mirroring the sink-level cleanup below.
+                if list.is_empty() {
+                    drop(list);
+                    self.by_topic.remove(&topic);
+                }
             }
             // Clean up reverse index.
             let sink_id = sink.id();

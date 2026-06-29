@@ -161,12 +161,18 @@ impl TransportConnection for BridgeConnection {
         })
     }
 
-    /// Send a close signal (`b'C'` byte) through the outbound channel.
+    /// Send a close signal through the outbound channel.
     ///
-    /// The framework-side writer task will interpret this as a request to
-    /// close the underlying WebSocket connection.
-    async fn close(&mut self, _code: CloseCode, _reason: &str) -> Result<()> {
-        let _ = self.outbox.send(vec![b'C']).await;
+    /// The wire format is `b'C'` followed by the close code as a 2-byte
+    /// big-endian `u16` and the UTF-8 reason bytes. The framework-side
+    /// writer task interprets this as a request to close the underlying
+    /// WebSocket connection with the given code and reason.
+    async fn close(&mut self, code: CloseCode, reason: &str) -> Result<()> {
+        let mut buf = Vec::with_capacity(3 + reason.len());
+        buf.push(b'C');
+        buf.extend_from_slice(&code.as_u16().to_be_bytes());
+        buf.extend_from_slice(reason.as_bytes());
+        let _ = self.outbox.send(buf).await;
         Ok(())
     }
 

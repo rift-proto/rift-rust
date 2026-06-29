@@ -152,10 +152,12 @@ pub use transport::{Transport, TransportConnection, TransportListener};
 ///
 /// # Overflow Handling
 ///
-/// Returns `0` when the system clock is before the Unix epoch (extremely
-/// rare but theoretically possible). This is a deliberate design choice:
-/// `0` is always stale, so any caller that checks freshness will treat
-/// it as "expired", keeping behaviour safe.
+/// Returns `i64::MIN` when the system clock is before the Unix epoch
+/// (extremely rare but theoretically possible). `i64::MIN` is
+/// unambiguously invalid as a real-world timestamp (the real epoch in
+/// i64 ms is ~ year 292 million), so callers can treat it as a
+/// sentinel. Any caller that checks freshness will treat it as
+/// "expired", keeping behaviour safe.
 ///
 /// # Use Cases
 ///

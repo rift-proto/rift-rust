@@ -347,13 +347,13 @@ impl<O: OffsetStore, L: LogStore, D: DedupeStore, S: SnapshotStore> TopicActor<O
         // Defensive: if the frame's topic doesn't match this
         // actor's topic, refuse the publish. Without this check a
         // misrouted frame could land in the wrong log and reach
-        // the wrong subscribers.
-        if let Some(t) = frame.topic.as_deref() {
-            if t != self.topic_name {
-                return Err(RiftError::Topic(crate::error::TopicReject::NotFound(
-                    t.to_string(),
-                )));
-            }
+        // the wrong subscribers. `frame.topic` is known to be
+        // `Some` at this point (validated above).
+        let t = frame.topic.as_deref().unwrap();
+        if t != self.topic_name {
+            return Err(RiftError::Topic(crate::error::TopicReject::NotFound(
+                t.to_string(),
+            )));
         }
         let message_id = frame.message_id.as_deref().ok_or_else(|| {
             RiftError::Frame(crate::error::FrameReject::RequiredFieldMissing(

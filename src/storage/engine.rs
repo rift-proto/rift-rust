@@ -60,6 +60,11 @@ pub trait StorageEngine: Send + Sync + 'static {
     /// The order of the returned pairs is unspecified for unsorted backends
     /// (e.g. `MemoryEngine`) but is lexicographic by key for sorted
     /// backends (e.g. `SledEngine`).
+    ///
+    /// **Complexity**: O(n) in the total number of keys for `MemoryEngine`
+    /// (full scan with a prefix filter). Callers with large key spaces
+    /// should prefer `SledEngine` which supports efficient prefix scans
+    /// via the underlying B+ tree.
     fn scan_prefix(&self, prefix: &[u8]) -> Vec<(Vec<u8>, Vec<u8>)>;
 }
 

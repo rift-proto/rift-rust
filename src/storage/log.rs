@@ -278,6 +278,11 @@ mod sled_impl {
             self.engine.put(&key, &value);
 
             match retention {
+                // Retention policies below run a full prefix scan on every
+                // append to locate stale entries. This trades write
+                // amplification for implementation simplicity; callers with
+                // high-throughput topics should consider a background sweep
+                // strategy or maintaining an in-memory entry count.
                 RetentionPolicy::Count(n) => {
                     let all = self.engine.scan_prefix(&encode::log_prefix(topic));
                     if all.len() > n {
