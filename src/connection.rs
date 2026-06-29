@@ -38,7 +38,7 @@ use crate::ack::{Ack, AckStatus, SharedAckManager};
 use crate::broker::fanout::{FanoutError, FanoutSink};
 use crate::broker::{Broker, SubscribeIntent};
 use crate::codec::{CborCodec, Codec, JsonCodec, negotiate};
-use crate::config::{CodecOffer, ServerConfig};
+use crate::config::ServerConfig;
 use crate::error::{Result, RiftError, SessionReject, SystemReject};
 use crate::flow::BackpressureController;
 use crate::frame::{Codec as FrameCodec, Frame, FrameFlags, FrameType};
@@ -453,8 +453,8 @@ impl Connection {
                 .iter()
                 .map(|offer| -> Arc<dyn Codec> {
                     match offer {
-                        CodecOffer::Json => Arc::new(JsonCodec),
-                        CodecOffer::Cbor => Arc::new(CborCodec),
+                        FrameCodec::Json => Arc::new(JsonCodec),
+                        FrameCodec::Cbor => Arc::new(CborCodec),
                     }
                 })
                 .collect()
@@ -513,7 +513,6 @@ impl Connection {
                     }
                     let outcome = match self.resume.evaluate(
                         &existing,
-                        incoming_epoch,
                         &last_offsets,
                         &topic_offsets,
                     ) {
@@ -539,9 +538,9 @@ impl Connection {
         // Record resume metrics.
         match resume_result {
             Some(
-                crate::session::resume::ResumeOutcome::Resumed
-                | crate::session::resume::ResumeOutcome::Partial
-                | crate::session::resume::ResumeOutcome::Replaying,
+                crate::session::ResumeDecision::FullResume
+                | crate::session::ResumeDecision::PartialResume
+                | crate::session::ResumeDecision::Replaying,
             ) => {
                 self.metrics.inc(&self.metrics.resume_success_total);
             }
@@ -555,12 +554,12 @@ impl Connection {
 
         // Send welcome (with resume_result + negotiated_codec).
         let resume_result_str = resume_result.map(|o| match o {
-            crate::session::resume::ResumeOutcome::Resumed => "resumed",
-            crate::session::resume::ResumeOutcome::Partial => "partial",
-            crate::session::resume::ResumeOutcome::Replaying => "replaying",
-            crate::session::resume::ResumeOutcome::SnapshotRequired => "snapshot_required",
-            crate::session::resume::ResumeOutcome::ColdStart => "cold_start",
-            crate::session::resume::ResumeOutcome::Rejected => "rejected",
+            crate::session::ResumeDecision::FullResume => "resumed",
+            crate::session::ResumeDecision::PartialResume => "partial",
+            crate::session::ResumeDecision::Replaying => "replaying",
+            crate::session::ResumeDecision::SnapshotRequired => "snapshot_required",
+            crate::session::ResumeDecision::ColdStart => "cold_start",
+            crate::session::ResumeDecision::Rejected => "rejected",
         });
         let welcome = build_welcome_frame(
             &session,
@@ -573,8 +572,8 @@ impl Connection {
         // Replay missed messages for Partial / Replaying outcomes.
         if matches!(
             resume_result,
-            Some(crate::session::resume::ResumeOutcome::Partial)
-                | Some(crate::session::resume::ResumeOutcome::Replaying)
+            Some(crate::session::ResumeDecision::PartialResume)
+                | Some(crate::session::ResumeDecision::Replaying)
         ) {
             for (topic, &last_offset) in &last_offsets {
                 let head = self.broker.head_offset(topic).await;
