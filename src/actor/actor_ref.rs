@@ -160,6 +160,7 @@ impl<M> LocalActorRef<M> {
 /// # Type parameter
 ///
 /// * `M` -- the message type (should map to a serializable wire variant).
+#[doc(hidden)]
 pub struct RemoteActorRef<M> {
     /// Marker to carry the message type `M` without storing a value.
     _phantom: PhantomData<M>,
