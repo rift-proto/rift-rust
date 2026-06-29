@@ -8,7 +8,7 @@ use tokio_tungstenite::tungstenite::Message as WsMessage;
 
 use crate::ack::AckStatus;
 use crate::frame::{Frame, Priority};
-use crate::message::SubscribeMode;
+use crate::broker::SubscribeIntent;
 use crate::message::command::Reply;
 use crate::transport::frame_codec::encode_frame;
 
@@ -212,7 +212,7 @@ impl RiftClient {
     pub async fn subscribe(
         &self,
         topic: &str,
-        mode: SubscribeMode,
+        mode: SubscribeIntent,
         from_offset: Option<i64>,
     ) -> Result<()> {
         self.require_connected().await?;
@@ -440,14 +440,14 @@ impl RiftClient {
     }
 }
 
-fn mode_str(mode: SubscribeMode) -> &'static str {
+fn mode_str(mode: SubscribeIntent) -> &'static str {
     match mode {
-        SubscribeMode::Live => "live",
-        SubscribeMode::Replay => "replay",
-        SubscribeMode::SnapshotThenLive => "snapshot_then_live",
-        SubscribeMode::Latest => "latest",
-        SubscribeMode::Passive => "passive",
-        SubscribeMode::Ephemeral => "ephemeral",
+        SubscribeIntent::Live => "live",
+        SubscribeIntent::Replay { .. } => "replay",
+        SubscribeIntent::SnapshotThenLive => "snapshot_then_live",
+        SubscribeIntent::Latest => "latest",
+        SubscribeIntent::Passive => "passive",
+        SubscribeIntent::Ephemeral => "ephemeral",
     }
 }
 
