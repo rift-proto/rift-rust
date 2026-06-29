@@ -43,7 +43,12 @@ pub enum FrameReject {
     /// When this error is triggered the server should inform the client of
     /// the supported version range via an Error frame.
     #[error("protocol version unsupported: client={client}, server={server}")]
-    ProtocolVersionUnsupported { client: u16, server: u16 },
+    ProtocolVersionUnsupported {
+        /// The protocol version sent by the client.
+        client: u16,
+        /// The protocol version supported by the server.
+        server: u16,
+    },
 
     /// The frame structure is invalid: missing fields, wrong types, corrupted encoding, etc.
     ///
@@ -62,7 +67,12 @@ pub enum FrameReject {
     /// `actual` is the number of bytes received; `max` is
     /// [`ServerConfig::max_payload_bytes`](crate::config::ServerConfig).
     #[error("payload too large: {actual} > {max}")]
-    PayloadTooLarge { actual: usize, max: usize },
+    PayloadTooLarge {
+        /// The actual payload size in bytes.
+        actual: usize,
+        /// The maximum allowed payload size in bytes.
+        max: usize,
+    },
 
     /// A required field specified by the protocol is missing.
     ///
@@ -115,7 +125,12 @@ pub enum SessionReject {
     /// An epoch conflict indicates the server has restarted or undergone
     /// failover, making the old session state unreliable.
     #[error("session epoch conflict: incoming={incoming}, current={current}")]
-    Conflict { incoming: u32, current: u32 },
+    Conflict {
+        /// The epoch value sent by the client.
+        incoming: u32,
+        /// The epoch value recorded by the server.
+        current: u32,
+    },
 
     /// The resume request was rejected.
     ///
@@ -129,7 +144,12 @@ pub enum SessionReject {
     /// The client should switch to snapshot mode to obtain the current state
     /// and then begin consuming from the latest offset.
     #[error("replay offset expired: topic={topic}, requested={requested}")]
-    ReplayOffsetExpired { topic: String, requested: i64 },
+    ReplayOffsetExpired {
+        /// The topic for which the replay offset has expired.
+        topic: String,
+        /// The offset the client requested.
+        requested: i64,
+    },
 
     /// The topic requires a snapshot before consumption can continue.
     ///
@@ -227,7 +247,12 @@ pub enum MessageReject {
     /// `actual` is the size in bytes; `max` is
     /// [`ServerConfig::max_payload_bytes`](crate::config::ServerConfig).
     #[error("message too large: {actual} > {max}")]
-    TooLarge { actual: usize, max: usize },
+    TooLarge {
+        /// The actual message size in bytes.
+        actual: usize,
+        /// The maximum allowed message size in bytes.
+        max: usize,
+    },
 
     /// Waiting for the message acknowledgment (ack) timed out.
     ///
