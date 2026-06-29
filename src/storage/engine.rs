@@ -59,6 +59,7 @@ pub struct MemoryEngine {
 }
 
 impl MemoryEngine {
+    /// Create a new, empty [`MemoryEngine`].
     pub fn new() -> Self {
         Self::default()
     }
@@ -92,25 +93,44 @@ impl StorageEngine for MemoryEngine {
     }
 }
 
+/// Shared, reference-counted handle to a [`StorageEngine`] implementation.
+///
+/// Used by storage backends that need to share engine access across multiple
+/// components (e.g. log store, offset store, dedupe store).
 pub type SharedEngine = Arc<dyn StorageEngine>;
 
+/// Sled-backed storage engine module.
+///
+/// Provides [`SledEngine`], a persistent, embedded storage engine backed by
+/// the `sled` database. Enabled via the `sled` feature flag.
 #[cfg(feature = "sled")]
 pub mod sled_engine {
     use super::StorageEngine;
 
+    /// Persistent storage engine backed by a `sled` [`Tree`](sled::Tree).
+    ///
+    /// Supports atomic compare-and-swap operations via [`cas`](SledEngine::cas),
+    /// used by the deduplication store for distributed consistency.
     pub struct SledEngine {
         tree: sled::Tree,
     }
 
     impl SledEngine {
+        /// Open or create a new [`SledEngine`] backed by the given sled tree.
         pub fn new(tree: sled::Tree) -> Self {
             Self { tree }
         }
 
+        /// Flush all pending writes to disk, returning the number of bytes flushed.
         pub fn flush(&self) -> Result<usize, sled::Error> {
             self.tree.flush()
         }
 
+        /// Atomic compare-and-swap.
+        ///
+        /// If the current value matches `expected`, writes `new_value`. Returns
+        /// `Ok(Ok(()))` on success, `Ok(Err(CompareAndSwapError))` if the
+        /// expected value didn't match, or `Err(sled::Error)` on I/O failure.
         pub fn cas(
             &self,
             key: Vec<u8>,
