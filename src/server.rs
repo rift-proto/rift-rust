@@ -32,9 +32,11 @@
 
 #[cfg(feature = "websocket")]
 use std::net::SocketAddr;
+use std::panic::AssertUnwindSafe;
 use std::sync::Arc;
 use std::sync::atomic::AtomicU64;
 
+use futures_util::FutureExt;
 use tracing::error;
 #[cfg(feature = "websocket")]
 use tracing::info;
@@ -370,8 +372,24 @@ impl RiftServer {
             self.session_store.clone(),
         );
         tokio::spawn(async move {
-            if let Err(e) = connection.run(transport).await {
-                error!(conn = id, "connection ended with error: {}", e);
+            // Catch panics in the connection task so a misbehaving
+            // session does not bring down the whole server. The
+            // `AssertUnwindSafe` is sound here because the
+            // connection owns no `&mut` state shared with other
+            // tasks.
+            let result = AssertUnwindSafe(connection.run(transport))
+                .catch_unwind()
+                .await;
+            match result {
+                Ok(Ok(())) => {
+                    tracing::debug!(conn = id, "connection ended cleanly");
+                }
+                Ok(Err(e)) => {
+                    error!(conn = id, "connection ended with error: {}", e);
+                }
+                Err(panic) => {
+                    error!(conn = id, "connection task panicked: {:?}", panic);
+                }
             }
         });
     }
@@ -384,8 +402,13 @@ impl RiftServer {
 /// [`InMemoryBroker`].
 impl From<DefaultTopicProfile> for crate::topic::TopicProfile {
     fn from(d: DefaultTopicProfile) -> Self {
+        // The `name` field of a TopicProfile acts as a
+        // template default applied to topics that don't
+        // specify their own. The empty string is used to
+        // signal "unset"; the per-topic entry will be
+        // named on creation.
         Self {
-            name: "default".into(),
+            name: String::new(),
             retention: d.retention,
             ordering: d.ordering,
             max_subscribers: d.max_subscribers,
