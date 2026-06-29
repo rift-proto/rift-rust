@@ -158,26 +158,20 @@ impl RemoteBroker {
                         // and we drop the payload rather than stall
                         // all request/response traffic on the same
                         // connection.
-                        if let Some(tx) = sinks_r.get(&sink_id) {
-                            if let Err(e) = tx.try_send(payload) {
-                                tracing::warn!(sink_id, error = %e,
+                        if let Some(tx) = sinks_r.get(&sink_id)
+                            && let Err(e) = tx.try_send(payload)
+                        {
+                            tracing::warn!(sink_id, error = %e,
                                     "dropping deliver payload: sink backpressured");
-                            }
                         }
                     }
-                    // All response variants dispatch to pending. The
-                    // current WireMsg design does not carry a
-                    // request_id on response variants (see wire.rs),
-                    // so we use a FIFO assumption: pop the first
-                    // pending entry. This is safe under a single
-                    // in-flight request per RemoteBroker; concurrent
-                    // requests are not supported until a request_id
-                    // is added to all response variants.
+                    // All response variants now carry a `request_id` field,
+                    // enabling correct correlation of concurrent requests.
+                    // Extract the request_id from whichever response variant
+                    // arrived and dispatch to the matching pending oneshot.
                     response => {
-                        let first_key = pending_r.iter().next().map(|e| *e.key());
-                        if let Some(id) = first_key
-                            && let Some((_, tx)) = pending_r.remove(&id)
-                        {
+                        let req_id = extract_request_id(&response);
+                        if let Some((_, tx)) = pending_r.remove(&req_id) {
                             let _ = tx.send(response);
                         }
                     }
@@ -213,10 +207,13 @@ impl RemoteBroker {
     ///
     /// Returns an error if the write fails, the connection is closed
     /// before a response arrives, or the request times out.
-    async fn request(&self, msg: WireMsg) -> Result<WireMsg> {
+    async fn request(&self, mut msg: WireMsg) -> Result<WireMsg> {
         let id = self
             .next_id
             .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        // Stamp the request_id on the outgoing message so the broker
+        // node can echo it back in the response.
+        set_request_id(&mut msg, id);
         let (tx, rx) = oneshot::channel();
         self.pending.insert(id, tx);
 
@@ -250,12 +247,13 @@ impl Broker for RemoteBroker {
     async fn publish(&self, frame: &crate::frame::Frame) -> Result<PublishOutcome> {
         let resp = self
             .request(WireMsg::Publish {
+                request_id: 0,
                 frame: frame.clone(),
             })
             .await?;
         match resp {
-            WireMsg::PublishResult { outcome } => Ok(outcome),
-            WireMsg::Error { code, message } => Err(RiftError::System(SystemReject::Internal(
+            WireMsg::PublishResult { outcome, .. } => Ok(outcome),
+            WireMsg::Error { code, message, .. } => Err(RiftError::System(SystemReject::Internal(
                 format!("broker error: {code} — {message}"),
             ))),
             _ => Err(RiftError::System(SystemReject::Internal(
@@ -285,14 +283,15 @@ impl Broker for RemoteBroker {
 
         let resp = self
             .request(WireMsg::Subscribe {
+                request_id: 0,
                 topic: topic.to_string(),
                 intent,
                 sink_id: raw_id,
             })
             .await;
         match resp {
-            Ok(WireMsg::SubscribeResult { id }) => Ok(SubscriptionId(id)),
-            Ok(WireMsg::Error { code, message }) => {
+            Ok(WireMsg::SubscribeResult { id, .. }) => Ok(SubscriptionId(id)),
+            Ok(WireMsg::Error { code, message, .. }) => {
                 // Subscribe failed: clean up the local sink entry
                 // and abort the background task so it does not
                 // run forever.
@@ -318,10 +317,15 @@ impl Broker for RemoteBroker {
     }
 
     async fn unsubscribe(&self, id: SubscriptionId) -> Result<bool> {
-        let resp = self.request(WireMsg::Unsubscribe { id: id.0 }).await?;
+        let resp = self
+            .request(WireMsg::Unsubscribe {
+                request_id: 0,
+                id: id.0,
+            })
+            .await?;
         match resp {
-            WireMsg::UnsubscribeResult { ok } => Ok(ok),
-            WireMsg::Error { code, message } => Err(RiftError::System(SystemReject::Internal(
+            WireMsg::UnsubscribeResult { ok, .. } => Ok(ok),
+            WireMsg::Error { code, message, .. } => Err(RiftError::System(SystemReject::Internal(
                 format!("broker error: {code} — {message}"),
             ))),
             _ => Err(RiftError::System(SystemReject::Internal(
@@ -332,8 +336,14 @@ impl Broker for RemoteBroker {
 
     async fn drop_sink(&self, sink_id: u64) -> usize {
         self.sinks.remove(&sink_id);
-        match self.request(WireMsg::DropSink { sink_id }).await {
-            Ok(WireMsg::DropSinkResult { count }) => count as usize,
+        match self
+            .request(WireMsg::DropSink {
+                request_id: 0,
+                sink_id,
+            })
+            .await
+        {
+            Ok(WireMsg::DropSinkResult { count, .. }) => count,
             Ok(_) | Err(_) => 0,
         }
     }
@@ -341,14 +351,15 @@ impl Broker for RemoteBroker {
     async fn replay(&self, topic: &str, from: i64, to: i64) -> Result<Vec<Bytes>> {
         let resp = self
             .request(WireMsg::Replay {
+                request_id: 0,
                 topic: topic.to_string(),
                 from,
                 to,
             })
             .await?;
         match resp {
-            WireMsg::ReplayResult { entries } => Ok(entries),
-            WireMsg::Error { code, message } => Err(RiftError::System(SystemReject::Internal(
+            WireMsg::ReplayResult { entries, .. } => Ok(entries),
+            WireMsg::Error { code, message, .. } => Err(RiftError::System(SystemReject::Internal(
                 format!("broker error: {code} — {message}"),
             ))),
             _ => Err(RiftError::System(SystemReject::Internal(
@@ -360,11 +371,12 @@ impl Broker for RemoteBroker {
     async fn snapshot(&self, topic: &str) -> Result<Option<crate::storage::StoredSnapshot>> {
         let resp = self
             .request(WireMsg::Snapshot {
+                request_id: 0,
                 topic: topic.to_string(),
             })
             .await?;
         match resp {
-            WireMsg::SnapshotResult { snapshot } => Ok(snapshot),
+            WireMsg::SnapshotResult { snapshot, .. } => Ok(snapshot),
             _ => Err(RiftError::System(SystemReject::Internal(
                 "unexpected broker response".into(),
             ))),
@@ -374,11 +386,12 @@ impl Broker for RemoteBroker {
     async fn subscriber_count(&self, topic: &str) -> usize {
         let resp = self
             .request(WireMsg::SubscriberCount {
+                request_id: 0,
                 topic: topic.to_string(),
             })
             .await;
         match resp {
-            Ok(WireMsg::SubscriberCountResult { count }) => count,
+            Ok(WireMsg::SubscriberCountResult { count, .. }) => count,
             _ => 0,
         }
     }
@@ -386,11 +399,12 @@ impl Broker for RemoteBroker {
     async fn head_offset(&self, topic: &str) -> i64 {
         let resp = self
             .request(WireMsg::HeadOffset {
+                request_id: 0,
                 topic: topic.to_string(),
             })
             .await;
         match resp {
-            Ok(WireMsg::HeadOffsetResult { offset }) => offset,
+            Ok(WireMsg::HeadOffsetResult { offset, .. }) => offset,
             _ => 0,
         }
     }
@@ -398,5 +412,49 @@ impl Broker for RemoteBroker {
     async fn dec_publisher(&self, _topic: &str) {
         // The remote broker node manages its own publisher tracking
         // state. The local side does not maintain a publisher count.
+    }
+}
+
+// ── request_id helpers ─────────────────────────────────────────────────
+
+/// Stamp a `request_id` onto an outgoing [`WireMsg`] request variant.
+///
+/// This is called by [`RemoteBroker::request`] just before sending a
+/// message so the remote broker node can echo the id back in its
+/// response.
+fn set_request_id(msg: &mut WireMsg, id: u32) {
+    match msg {
+        WireMsg::Publish { request_id, .. }
+        | WireMsg::Subscribe { request_id, .. }
+        | WireMsg::Unsubscribe { request_id, .. }
+        | WireMsg::DropSink { request_id, .. }
+        | WireMsg::Replay { request_id, .. }
+        | WireMsg::Snapshot { request_id, .. }
+        | WireMsg::SubscriberCount { request_id, .. }
+        | WireMsg::HeadOffset { request_id, .. } => {
+            *request_id = id;
+        }
+        // Deliver and response variants are never sent as requests.
+        _ => {}
+    }
+}
+
+/// Extract the `request_id` from an incoming [`WireMsg`] response variant.
+///
+/// The id is used by the reader task to correlate the response with the
+/// correct pending request. Returns `0` for non-response variants (which
+/// should never reach this code path).
+fn extract_request_id(msg: &WireMsg) -> u32 {
+    match msg {
+        WireMsg::PublishResult { request_id, .. }
+        | WireMsg::SubscribeResult { request_id, .. }
+        | WireMsg::UnsubscribeResult { request_id, .. }
+        | WireMsg::DropSinkResult { request_id, .. }
+        | WireMsg::ReplayResult { request_id, .. }
+        | WireMsg::SnapshotResult { request_id, .. }
+        | WireMsg::SubscriberCountResult { request_id, .. }
+        | WireMsg::HeadOffsetResult { request_id, .. }
+        | WireMsg::Error { request_id, .. } => *request_id,
+        _ => 0,
     }
 }
