@@ -2,7 +2,7 @@
 
 use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
 use rifts::message::event::{Event, decode_event_body, encode_event_body};
-use rifts::{DeliveryMode, Message, MessageClass, SubscribeMode};
+use rifts::{DeliveryMode, Message, MessageClass, SubscribeIntent};
 
 mod common;
 
@@ -95,19 +95,19 @@ fn bench_class(c: &mut Criterion) {
 
 fn bench_subscribe_mode(c: &mut Criterion) {
     let modes = [
-        SubscribeMode::Live,
-        SubscribeMode::Replay,
-        SubscribeMode::SnapshotThenLive,
-        SubscribeMode::Latest,
-        SubscribeMode::Passive,
-        SubscribeMode::Ephemeral,
+        SubscribeIntent::Live,
+        SubscribeIntent::Replay { from: 0 },
+        SubscribeIntent::SnapshotThenLive,
+        SubscribeIntent::Latest,
+        SubscribeIntent::Passive,
+        SubscribeIntent::Ephemeral,
     ];
     let mut group = c.benchmark_group("message/subscribe_mode");
     group.bench_function("serde_round_trip", |b| {
         b.iter(|| {
             for m in &modes {
                 let s = serde_json::to_string(black_box(m)).expect("ser");
-                let back: SubscribeMode = serde_json::from_str(black_box(&s)).expect("de");
+                let back: SubscribeIntent = serde_json::from_str(black_box(&s)).expect("de");
                 black_box(back);
             }
         });
