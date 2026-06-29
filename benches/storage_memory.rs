@@ -178,7 +178,7 @@ fn bench_dedupe_sweep(c: &mut Criterion) {
                 || {
                     let store = MemoryDedupeStore::new();
                     let short_window = Duration::from_millis(0);
-                    for _i in 0..n {
+                    for i in 0..n {
                         rt.block_on(store.check_and_record(
                             "bench.topic",
                             &format!("key-{i}"),
