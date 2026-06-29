@@ -35,7 +35,6 @@ use std::time::Duration;
 
 use bytes::Bytes;
 use parking_lot::RwLock;
-use uuid::Uuid;
 
 use crate::now_ms;
 use crate::topic::TopicStore;
