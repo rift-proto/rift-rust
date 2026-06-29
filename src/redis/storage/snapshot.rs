@@ -10,12 +10,17 @@ use crate::redis::connection::RedisPool;
 use crate::storage::{SnapshotStore, StoredSnapshot};
 use crate::topic::TopicStore;
 
+/// Redis-backed snapshot store.
+///
+/// Each topic's latest snapshot is stored as a Redis string value, serialized
+/// as CBOR for compact storage and fast deserialization.
 #[derive(Clone)]
 pub struct RedisSnapshotStore {
     pool: RedisPool,
 }
 
 impl RedisSnapshotStore {
+    /// Create a new [`RedisSnapshotStore`] backed by the given Redis connection pool.
     pub fn new(pool: RedisPool) -> Self {
         Self { pool }
     }
