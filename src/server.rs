@@ -214,6 +214,19 @@ impl RiftServerBuilder {
         self
     }
 
+    /// Enable Redis-backed multi-instance broker mode (requires feature `redis`).
+    ///
+    /// Callers must build the [`RedisActorBroker`](crate::redis::RedisActorBroker)
+    /// separately (it requires an async Redis connection) and pass it here.
+    /// This method is a convenience alias for [`broker`](Self::broker) that
+    /// accepts a pre-built `RedisActorBroker` bundled with its storage and
+    /// fanout bridge.
+    #[cfg(feature = "redis")]
+    pub fn redis_broker(mut self, broker: Arc<dyn Broker>) -> Self {
+        self.broker = Some(broker);
+        self
+    }
+
     pub fn build(self) -> Result<RiftServer> {
         let metrics = self.metrics.unwrap_or_else(|| Arc::new(Metrics::new()));
         let config_max_payload = self.config.max_payload_bytes;
