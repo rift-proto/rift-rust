@@ -34,6 +34,7 @@ ntex = ["dep:ntex"]
 # Composite shortcuts.
 tokio-frameworks = ["axum", "warp"]
 all-frameworks = ["axum", "actix-web", "warp", "ntex"]
+redis = ["dep:redis"]
 
 [dependencies]
 tokio = { version = "1", features = ["full"] }
@@ -60,6 +61,7 @@ actix-web = { version = "4", optional = true }
 actix-ws = { version = "0.3", optional = true }
 warp = { version = "0.3", optional = true }
 ntex = { version = "2", optional = true, features = ["ws"] }
+redis = { version = "1.3.0", features = ["tokio-comp", "aio", "streams"], optional = true }
 
 [dev-dependencies]
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
