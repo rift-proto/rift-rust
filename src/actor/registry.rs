@@ -206,7 +206,8 @@ impl<
         // exactly once per key, so two concurrent callers cannot
         // both spawn a new actor for the same topic.
         let mut existing = None;
-        let actor_ref = match self.actors.entry(topic.to_string()) {
+
+        match self.actors.entry(topic.to_string()) {
             dashmap::mapref::entry::Entry::Occupied(mut occ) => {
                 if !occ.get().is_closed() {
                     existing = Some(occ.get().clone());
@@ -247,8 +248,7 @@ impl<
                 vac.insert(new_ref.clone());
                 new_ref
             }
-        };
-        actor_ref
+        }
     }
 
     /// Record a `(subscription_id, topic, sink_id)` triple in the
