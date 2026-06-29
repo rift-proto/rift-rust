@@ -83,7 +83,10 @@ pub fn into_connection(
                         }
                         Ok(actix_ws::Message::Close(_)) => vec![b'C'],
                         Ok(_) => continue, // skip ping/pong/nop/continuation
-                        Err(_) => break,
+                        Err(e) => {
+                            tracing::warn!(error = ?e, "actix reader stream error");
+                            break;
+                        }
                     };
                     if tx.send(raw).await.is_err() {
                         break;
