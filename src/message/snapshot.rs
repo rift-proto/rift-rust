@@ -13,7 +13,7 @@
 //!
 //! Snapshots are set by the publisher and persistently stored by the server.
 //! New subscribers can obtain them via
-//! [`SubscribeMode::SnapshotThenLive`](super::SubscribeMode::SnapshotThenLive).
+//! [`SubscribeIntent::SnapshotThenLive`](super::SubscribeIntent::SnapshotThenLive).
 
 use bytes::Bytes;
 use serde::{Deserialize, Serialize};
