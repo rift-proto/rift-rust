@@ -277,7 +277,7 @@ impl Broker for RemoteBroker {
 
         // Background task to route push messages to the actual fanout sink.
         let sink_clone = sink.clone();
-        tokio::spawn(async move {
+        let bg_task = tokio::spawn(async move {
             while let Some(payload) = rx.recv().await {
                 let _ = sink_clone.deliver(payload);
             }
@@ -289,15 +289,31 @@ impl Broker for RemoteBroker {
                 intent,
                 sink_id: raw_id,
             })
-            .await?;
+            .await;
         match resp {
-            WireMsg::SubscribeResult { id } => Ok(SubscriptionId(id)),
-            WireMsg::Error { code, message } => Err(RiftError::System(SystemReject::Internal(
-                format!("broker error: {code} — {message}"),
-            ))),
-            _ => Err(RiftError::System(SystemReject::Internal(
-                "unexpected broker response".into(),
-            ))),
+            Ok(WireMsg::SubscribeResult { id }) => Ok(SubscriptionId(id)),
+            Ok(WireMsg::Error { code, message }) => {
+                // Subscribe failed: clean up the local sink entry
+                // and abort the background task so it does not
+                // run forever.
+                self.sinks.remove(&raw_id);
+                bg_task.abort();
+                Err(RiftError::System(SystemReject::Internal(format!(
+                    "broker error: {code} — {message}"
+                ))))
+            }
+            Ok(_) => {
+                self.sinks.remove(&raw_id);
+                bg_task.abort();
+                Err(RiftError::System(SystemReject::Internal(
+                    "unexpected broker response".into(),
+                )))
+            }
+            Err(e) => {
+                self.sinks.remove(&raw_id);
+                bg_task.abort();
+                Err(e)
+            }
         }
     }
 
