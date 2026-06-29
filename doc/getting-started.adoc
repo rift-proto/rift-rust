@@ -59,44 +59,17 @@ The server is now listening on `ws://127.0.0.1:9000`.
 == Choosing a Broker Backend
 
 `RiftServer::builder()` creates a default `InMemoryBroker` — single‑process, no persistence.
-You can swap in other brokers:
 
 [source,rust]
 ----
-use std::sync::Arc;
-use rifts::broker::{InMemoryBroker, RemoteBroker, ActorBroker};
+use rifts::broker::InMemoryBroker;
 
-// --- Option 1: Default (in‑memory, no persistence) ---
+// Default (in‑memory, no persistence)
 let server = RiftServer::builder()
     .websocket_transport()
-    .build()?;
-
-// --- Option 2: Remote broker (connect to an external node over TCP) ---
-let broker = RemoteBroker::connect("192.168.1.10:9200".parse()?).await?;
-let server = RiftServer::builder()
-    .websocket_transport()
-    .broker(Arc::new(broker))
-    .build()?;
-
-// --- Option 3: Actor‑based broker (per‑topic tasks, in‑process) ---
-use rifts::actor::TopicRegistry;
-use rifts::storage::{MemoryOffsetStore, MemoryLogStore, MemoryDedupeStore, MemorySnapshotStore};
-use std::time::Duration;
-
-let registry = TopicRegistry::new(
-    Arc::new(MemoryOffsetStore::new()),
-    Arc::new(MemoryLogStore::new()),
-    Arc::new(MemoryDedupeStore::new()),
-    Arc::new(MemorySnapshotStore::new()),
-    rifts::TopicProfile::default(),
-    Duration::from_secs(60),
-);
-let broker = ActorBroker::new(Arc::new(registry));
-let server = RiftServer::builder()
-    .websocket_transport()
-    .broker(Arc::new(broker))
     .build()?;
 ----
+
 
 == Sled Persistence (feature `sled`)
 
@@ -216,6 +189,6 @@ async fn ws_route(req: HttpRequest, stream: web::Payload) -> HttpResponse {
 
 == Next Steps
 
-- xref:architecture.adoc[Architecture] — full crate map, actor runtime, RemoteBroker.
+- xref:architecture.adoc[Architecture] — full crate map, persistence layer.
 - xref:examples.adoc[Examples] — Sled, actors, custom AuthProvider.
 - xref:protocol/index.adoc[Protocol Reference] — wire format and semantics.
