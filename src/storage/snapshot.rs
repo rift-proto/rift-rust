@@ -154,7 +154,8 @@ impl SnapshotStore for MemorySnapshotStore {
         let snap = entry.snapshot()?;
         let now = now_ms();
         let stored = StoredSnapshot {
-            snapshot_id: Uuid::new_v4().to_string(),
+            // Deterministic id derived from the entry's offset.
+            snapshot_id: format!("snap-{}", snap.offset),
             topic: topic.to_string(),
             base_offset: snap.offset,
             payload: snap.payload,
@@ -257,7 +258,7 @@ mod sled_impl {
             let snap = entry.snapshot()?;
             let now = now_ms();
             let stored = StoredSnapshot {
-                snapshot_id: Uuid::new_v4().to_string(),
+                snapshot_id: format!("snap-{}", snap.offset),
                 topic: topic.to_string(),
                 base_offset: snap.offset,
                 payload: snap.payload,
