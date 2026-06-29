@@ -74,6 +74,12 @@ struct ConnSink {
 
     /// Unique id for this sink, used by the broker to track subscriptions.
     sink_id: u64,
+
+    /// Codec negotiated during the Hello handshake. All frames
+    /// delivered via this sink are tagged with this codec so
+    /// clients that negotiated CBOR receive correctly-encoded
+    /// payloads.
+    codec: FrameCodec,
 }
 
 impl FanoutSink for ConnSink {
@@ -85,30 +91,55 @@ impl FanoutSink for ConnSink {
     /// the channel has been closed (connection is shutting down).
     fn deliver(&self, frame: bytes::Bytes) -> std::result::Result<(), FanoutError> {
         let len = frame.len();
-        if self.in_flight_bytes.load(Ordering::SeqCst) + len > self.max_bytes {
-            return Err(FanoutError::Backpressured {
-                queue_bytes: self.in_flight_bytes.load(Ordering::SeqCst),
-                max_bytes: self.max_bytes,
-            });
+        // Atomic reserve: compare-and-swap loop so the byte-count
+        // check and the increment are performed as a single atomic
+        // operation. Without this, multiple concurrent deliveries
+        // can each see the counter below the limit and all proceed,
+        // collectively exceeding `max_bytes`.
+        let mut prev = self.in_flight_bytes.load(Ordering::Acquire);
+        loop {
+            if prev + len > self.max_bytes {
+                return Err(FanoutError::Backpressured {
+                    queue_bytes: prev,
+                    max_bytes: self.max_bytes,
+                });
+            }
+            match self.in_flight_bytes.compare_exchange_weak(
+                prev,
+                prev + len,
+                Ordering::AcqRel,
+                Ordering::Acquire,
+            ) {
+                Ok(_) => break,
+                Err(current) => prev = current,
+            }
         }
         let f = Frame {
             frame_type: FrameType::Data,
-            codec: FrameCodec::Json,
+            // Use the negotiated codec, not a hardcoded value, so
+            // CBOR-negociated clients receive correctly-tagged frames.
+            codec: self.codec,
             payload: Some(frame),
             flags: FrameFlags::empty(),
             ..Frame::default()
         };
         match self.tx.try_send(f) {
             Ok(()) => {
-                self.in_flight_bytes.fetch_add(len, Ordering::SeqCst);
                 self.metrics.inc(&self.metrics.messages_out_total);
                 Ok(())
             }
-            Err(mpsc::error::TrySendError::Full(_)) => Err(FanoutError::Backpressured {
-                queue_bytes: self.in_flight_bytes.load(Ordering::SeqCst),
-                max_bytes: self.max_bytes,
-            }),
-            Err(mpsc::error::TrySendError::Closed(_)) => Err(FanoutError::Closed),
+            Err(mpsc::error::TrySendError::Full(_)) => {
+                // Roll back the reservation we made above.
+                self.in_flight_bytes.fetch_sub(len, Ordering::AcqRel);
+                Err(FanoutError::Backpressured {
+                    queue_bytes: self.in_flight_bytes.load(Ordering::SeqCst),
+                    max_bytes: self.max_bytes,
+                })
+            }
+            Err(mpsc::error::TrySendError::Closed(_)) => {
+                self.in_flight_bytes.fetch_sub(len, Ordering::AcqRel);
+                Err(FanoutError::Closed)
+            }
         }
     }
     fn id(&self) -> u64 {
@@ -182,7 +213,9 @@ pub struct Connection {
     /// Topics this connection has published to. Used on connection close
     /// to release per-topic publisher counts back to the broker (so the
     /// slots can be reused by future publishers).
-    published_topics: parking_lot::Mutex<HashSet<String>>,
+    /// Topics this connection has published to. Drained on
+    /// teardown to release per-topic publisher slots.
+    published_topics: Arc<parking_lot::Mutex<HashSet<String>>>,
 }
 
 impl Connection {
@@ -221,7 +254,7 @@ impl Connection {
             sink_id: crate::broker::fanout::new_sink_id(),
             codec: Arc::new(JsonCodec),
             in_flight_bytes: Arc::new(AtomicUsize::new(0)),
-            published_topics: parking_lot::Mutex::new(HashSet::new()),
+            published_topics: Arc::new(parking_lot::Mutex::new(HashSet::new())),
         }
     }
 
@@ -238,6 +271,7 @@ impl Connection {
             max_bytes: self.backpressure.max_bytes(),
             metrics: self.metrics.clone(),
             sink_id: self.sink_id,
+            codec: self.codec.frame_codec(),
         })
     }
 
@@ -303,7 +337,12 @@ impl Connection {
         let out_tx_r = self.out_tx.clone();
         let in_flight_r = self.in_flight_bytes.clone();
         let max_bytes_r = self.backpressure.max_bytes();
-        let published_topics_r = Arc::new(parking_lot::Mutex::new(HashSet::new()));
+        // Share the published_topics set with the reader task so
+        // teardown can release every publisher slot the connection
+        // actually used. Previously a separate set was created in
+        // the reader, leaving the connection's set empty and
+        // leaking publisher slots.
+        let published_topics_r = self.published_topics.clone();
         let conn_id = self.conn_id;
         let reader_handle = tokio::spawn(async move {
             reader_task(
@@ -336,7 +375,12 @@ impl Connection {
         }
         self.broker.drop_sink(self.sink_id).await;
         self.ack_manager.forget(session.id.as_str());
-        self.offset_tracker.forget(&session.id);
+        // Do NOT forget the offset tracker on every disconnect: the
+        // SessionStore/OffsetTracker are specifically designed to
+        // support cross-connection session resumption. Forgetting
+        // here would defeat that feature. The offset history is
+        // eventually cleaned up when the session is explicitly
+        // removed from the store or expires.
         // Release per-topic publisher slots so the limit isn't
         // permanently consumed by this connection.
         let topics: Vec<String> = self.published_topics.lock().drain().collect();
@@ -797,6 +841,7 @@ async fn handle_control(
                 in_flight_bytes: in_flight_bytes.clone(),
                 max_bytes,
                 id: crate::broker::fanout::new_sink_id(),
+                codec: codec.frame_codec(),
             });
             let id = broker.subscribe(&topic, intent, sink).await?;
             let reply = serde_json::json!({
@@ -865,6 +910,8 @@ struct MpscSink {
     max_bytes: usize,
     /// Unique sink id for this subscription.
     id: u64,
+    /// Codec negotiated during the Hello handshake.
+    codec: FrameCodec,
 }
 
 impl FanoutSink for MpscSink {
@@ -876,29 +923,45 @@ impl FanoutSink for MpscSink {
     /// the channel has been closed.
     fn deliver(&self, frame: bytes::Bytes) -> std::result::Result<(), FanoutError> {
         let len = frame.len();
-        if self.in_flight_bytes.load(Ordering::SeqCst) + len > self.max_bytes {
-            return Err(FanoutError::Backpressured {
-                queue_bytes: self.in_flight_bytes.load(Ordering::SeqCst),
-                max_bytes: self.max_bytes,
-            });
+        // Atomic CAS reserve, same as ConnSink.
+        let mut prev = self.in_flight_bytes.load(Ordering::Acquire);
+        loop {
+            if prev + len > self.max_bytes {
+                return Err(FanoutError::Backpressured {
+                    queue_bytes: prev,
+                    max_bytes: self.max_bytes,
+                });
+            }
+            match self.in_flight_bytes.compare_exchange_weak(
+                prev,
+                prev + len,
+                Ordering::AcqRel,
+                Ordering::Acquire,
+            ) {
+                Ok(_) => break,
+                Err(current) => prev = current,
+            }
         }
         let f = Frame {
             frame_type: FrameType::Data,
-            codec: FrameCodec::Json,
+            codec: self.codec,
             payload: Some(frame),
             flags: FrameFlags::empty(),
             ..Frame::default()
         };
         match self.tx.try_send(f) {
-            Ok(()) => {
-                self.in_flight_bytes.fetch_add(len, Ordering::SeqCst);
-                Ok(())
+            Ok(()) => Ok(()),
+            Err(mpsc::error::TrySendError::Full(_)) => {
+                self.in_flight_bytes.fetch_sub(len, Ordering::AcqRel);
+                Err(FanoutError::Backpressured {
+                    queue_bytes: self.in_flight_bytes.load(Ordering::SeqCst),
+                    max_bytes: self.max_bytes,
+                })
             }
-            Err(mpsc::error::TrySendError::Full(_)) => Err(FanoutError::Backpressured {
-                queue_bytes: self.in_flight_bytes.load(Ordering::SeqCst),
-                max_bytes: self.max_bytes,
-            }),
-            Err(mpsc::error::TrySendError::Closed(_)) => Err(FanoutError::Closed),
+            Err(mpsc::error::TrySendError::Closed(_)) => {
+                self.in_flight_bytes.fetch_sub(len, Ordering::AcqRel);
+                Err(FanoutError::Closed)
+            }
         }
     }
     fn id(&self) -> u64 {

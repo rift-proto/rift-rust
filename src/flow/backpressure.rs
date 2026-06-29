@@ -181,7 +181,10 @@ impl BackpressureController {
     /// This can be used by metrics exporters to detect overloaded connections
     /// without inspecting the exact byte count.
     pub fn is_overloaded(&self) -> bool {
-        self.current_bytes() >= (self.max_bytes * 9) / 10
+        if self.max_bytes == 0 {
+            return false;
+        }
+        self.current_bytes() >= self.max_bytes - self.max_bytes / 10
     }
 
     /// Attempt to enqueue a payload of `payload_bytes` bytes.
@@ -224,15 +227,18 @@ impl BackpressureController {
                 BackpressureAction::Pause
             }
             BackpressureStrategy::DropVolatile => {
+                self.record_dropped();
                 self.volatile_drop.fetch_add(1, Ordering::Relaxed);
                 BackpressureAction::DropVolatile
             }
             BackpressureStrategy::CoalesceState => {
+                self.record_dropped();
                 self.state_coalesce.fetch_add(1, Ordering::Relaxed);
                 BackpressureAction::CoalesceState
             }
             BackpressureStrategy::Downgrade => BackpressureAction::Downgrade,
             BackpressureStrategy::Disconnect => {
+                self.record_dropped();
                 self.slow_consumer.fetch_add(1, Ordering::Relaxed);
                 BackpressureAction::Disconnect
             }
@@ -243,17 +249,38 @@ impl BackpressureController {
     /// Release `bytes` from the queue after a message has been written to
     /// the transport.
     ///
+    /// Uses a compare-and-swap loop with `saturating_sub` so the counter
+    /// cannot underflow below zero even if the caller releases more
+    /// bytes than were enqueued (a programming error).
+    ///
     /// If the release causes the queue to drop back below the high-water
     /// mark (90 %) a flow-resume event is recorded automatically.
     pub fn release(&self, bytes: usize) {
-        let prev = self.current_bytes.fetch_sub(bytes, Ordering::AcqRel);
-        // If we just crossed below the high water mark, record a
-        // flow-resume event.
-        if prev >= (self.max_bytes * 9) / 10
-            && prev.saturating_sub(bytes) < (self.max_bytes * 9) / 10
-        {
-            self.flow_resume.fetch_add(1, Ordering::Relaxed);
+        let hwm = self.high_water();
+        let mut prev = self.current_bytes.load(Ordering::Acquire);
+        loop {
+            let next = prev.saturating_sub(bytes);
+            match self.current_bytes.compare_exchange_weak(
+                prev,
+                next,
+                Ordering::AcqRel,
+                Ordering::Acquire,
+            ) {
+                Ok(_) => {
+                    if prev >= hwm && next < hwm {
+                        self.flow_resume.fetch_add(1, Ordering::Relaxed);
+                    }
+                    return;
+                }
+                Err(current) => prev = current,
+            }
         }
+    }
+
+    /// High-water mark in bytes (90 % of `max_bytes`). Computed via
+    /// subtraction to avoid overflow for small `max_bytes` values.
+    fn high_water(&self) -> usize {
+        self.max_bytes - self.max_bytes / 10
     }
 
     /// Increment the counter that records how many times a backpressure
