@@ -71,7 +71,7 @@ pub(crate) async fn connect(
     );
     drop(cfg);
     let hello_bytes = encode_frame(&hello)?;
-    writer.send(WsMessage::Binary(hello_bytes.to_vec())).await?;
+    writer.send(WsMessage::Binary(hello_bytes)).await?;
 
     // 3. Await Welcome and Ready
     let (welcome, ready) = await_handshake(&mut reader).await?;
@@ -150,7 +150,7 @@ pub(crate) async fn connect(
             .writer
             .lock()
             .await
-            .send(WsMessage::Binary(bytes.to_vec()))
+            .send(WsMessage::Binary(bytes))
             .await
         {
             tracing::warn!(error = %e, "failed to send resubscribe frame");
