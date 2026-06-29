@@ -171,5 +171,10 @@ pub(crate) fn now_ms() -> i64 {
     std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .map(|d| d.as_millis() as i64)
-        .unwrap_or(0)
+        // Return `i64::MIN` if the system clock is set before
+        // the Unix epoch. `i64::MIN` is unambiguously invalid as
+        // a real-world timestamp (the real epoch in i64 ms is
+        // ~ year 292 million), so callers can treat it as a
+        // sentinel.
+        .unwrap_or(i64::MIN)
 }
