@@ -16,11 +16,17 @@ use crate::topic::TopicStore;
 /// A stored snapshot of a topic's state at a point in time.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct StoredSnapshot {
+    /// Unique identifier for this snapshot.
     pub snapshot_id: String,
+    /// The topic this snapshot belongs to.
     pub topic: String,
+    /// The log offset at which this snapshot was captured.
     pub base_offset: i64,
+    /// The snapshot payload (typically CBOR-encoded topic state).
     pub payload: Bytes,
+    /// Timestamp (ms since epoch) when the snapshot was created.
     pub created_at: i64,
+    /// Optional expiration timestamp; `None` means the snapshot lives indefinitely.
     pub expires_at: Option<i64>,
 }
 
@@ -47,12 +53,16 @@ pub trait SnapshotStore: Send + Sync {
 
 // ── Memory-backed ────────────────────────────────────────────
 
+/// In-memory snapshot store backed by a [`RwLock`]-protected [`HashMap`].
+///
+/// Snapshots are stored keyed by topic name.
 #[derive(Debug, Default)]
 pub struct MemorySnapshotStore {
     inner: RwLock<HashMap<String, StoredSnapshot>>,
 }
 
 impl MemorySnapshotStore {
+    /// Create a new, empty [`MemorySnapshotStore`].
     pub fn new() -> Self {
         Self::default()
     }
@@ -111,11 +121,16 @@ mod sled_impl {
     use crate::storage::engine::SledEngine;
     use crate::storage::engine::StorageEngine;
 
+    /// Sled-backed snapshot store.
+    ///
+    /// Snapshots are stored in the sled tree as CBOR-encoded [`StoredSnapshot`]
+    /// values keyed by topic name.
     pub struct SledSnapshotStore {
         engine: SledEngine,
     }
 
     impl SledSnapshotStore {
+        /// Create a new [`SledSnapshotStore`] backed by the given sled engine.
         pub fn new(engine: SledEngine) -> Self {
             Self { engine }
         }
