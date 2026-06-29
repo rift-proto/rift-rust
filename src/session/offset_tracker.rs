@@ -43,6 +43,7 @@ pub struct OffsetTracker {
 }
 
 impl OffsetTracker {
+    /// Create a new, empty [`OffsetTracker`].
     pub fn new() -> Self {
         Self::default()
     }
