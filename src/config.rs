@@ -133,6 +133,45 @@ pub struct ServerConfig {
     ///
     /// Individual topics can override these settings.
     pub default_topic_profile: DefaultTopicProfile,
+
+    /// Redis connection configuration (only available with feature `redis`).
+    ///
+    /// When set, the server can use a [`RedisActorBroker`](crate::redis::RedisActorBroker)
+    /// for multi-instance communication. If `None`, Redis-based brokers cannot be
+    /// constructed from this configuration.
+    #[cfg(feature = "redis")]
+    pub redis: Option<RedisConfig>,
+}
+
+/// Redis connection configuration for multi-instance deployments.
+///
+/// Defines how the server connects to a Redis instance for shared state
+/// (offsets, log, dedupe, snapshots) and cross-instance message fanout
+/// via Redis Pub/Sub.
+#[cfg(feature = "redis")]
+#[derive(Debug, Clone)]
+pub struct RedisConfig {
+    /// Redis connection URL (e.g. `"redis://127.0.0.1:6379"`).
+    pub url: String,
+    /// Maximum number of connections in the Redis connection pool.
+    /// Default: 8.
+    pub pool_size: usize,
+    /// Prefix prepended to all Redis keys used by this instance,
+    /// enabling multiple logical deployments to share a single
+    /// Redis server without key collisions.
+    /// Default: `"rift"`.
+    pub prefix: String,
+}
+
+#[cfg(feature = "redis")]
+impl Default for RedisConfig {
+    fn default() -> Self {
+        Self {
+            url: "redis://127.0.0.1:6379".into(),
+            pool_size: 8,
+            prefix: "rift".into(),
+        }
+    }
 }
 
 /// Available codecs offered to the client during the Hello phase.
@@ -207,6 +246,8 @@ impl Default for ServerConfig {
             max_auth_failures: 3,
             codec_offer: Vec::new(),
             default_topic_profile: DefaultTopicProfile::default(),
+            #[cfg(feature = "redis")]
+            redis: None,
         }
     }
 }
