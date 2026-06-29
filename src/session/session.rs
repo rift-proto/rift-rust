@@ -214,7 +214,12 @@ impl Session {
     /// and should also be called by the broker whenever a message is
     /// published or received on this session.
     pub fn touch(&self) {
-        self.last_active.store(now_ms() as u64, Ordering::SeqCst);
+        // `last_active` is an informational timestamp, not a
+        // synchronization point. `Relaxed` is sufficient; the
+        // caller observing `last_active` will also perform other
+        // synchronized operations that establish the necessary
+        // happens-before.
+        self.last_active.store(now_ms() as u64, Ordering::Relaxed);
     }
 
     /// Read the current epoch value.
