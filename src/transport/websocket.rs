@@ -139,10 +139,7 @@ async fn accept_with_config(
     max_message_size: Option<usize>,
 ) -> std::result::Result<WebSocketStream<TcpStream>, tokio_tungstenite::tungstenite::Error> {
     if let Some(limit) = max_message_size {
-        let config = WebSocketConfig {
-            max_message_size: Some(limit),
-            ..WebSocketConfig::default()
-        };
+        let config = WebSocketConfig::default().max_message_size(Some(limit));
         accept_async_with_config(stream, Some(config)).await
     } else {
         accept_async(stream).await
@@ -232,7 +229,7 @@ impl TransportConnection for WebSocketConnection {
     async fn write_frame(&mut self, frame: &Frame) -> Result<()> {
         let payload = encode_frame(frame)?;
         let mut w = self.writer.lock().await;
-        w.send(WsMessage::Binary(payload.to_vec()))
+        w.send(WsMessage::Binary(payload))
             .await
             .map_err(|e| RiftError::WebSocket(BoxedStdError(Box::new(e))))?;
         w.flush()
