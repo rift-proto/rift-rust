@@ -113,25 +113,8 @@ impl DeliveryMode {
     }
 }
 
-/// Subscribe mode (spec section 10.1).
-///
-/// Determines the scope and method of message reception when a client joins a topic.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum SubscribeMode {
-    /// Only receive new messages that arrive after the subscription is established.
-    Live,
-    /// Replay historical messages starting from a specified offset; no real-time messages.
-    Replay,
-    /// Send a snapshot first, then switch to live mode (recommended for UI synchronization).
-    SnapshotThenLive,
-    /// Only fetch the latest state snapshot of the topic.
-    Latest,
-    /// Passive mode -- does not count toward the subscriber count and does not affect retention policy.
-    Passive,
-    /// Ephemeral subscription -- not persisted, not restored after disconnection.
-    Ephemeral,
-}
+// Re-export SubscribeIntent from the broker layer for convenience.
+pub use crate::broker::fanout::SubscribeIntent;
 
 /// Subscribe acknowledgment result (spec section 10.2).
 ///
