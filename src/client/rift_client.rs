@@ -433,7 +433,7 @@ impl RiftClient {
         let conn = inner.as_ref().ok_or(ClientError::NotConnected)?;
         let bytes = encode_frame(&frame)?;
         let mut writer = conn.writer.lock().await;
-        writer.send(WsMessage::Binary(bytes.to_vec())).await?;
+        writer.send(WsMessage::Binary(bytes)).await?;
         writer.flush().await?;
         Ok(())
     }
