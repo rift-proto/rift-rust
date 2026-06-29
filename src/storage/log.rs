@@ -35,12 +35,17 @@ pub trait LogStore: Send + Sync {
 
 // ── Memory-backed ────────────────────────────────────────────
 
+/// In-memory append-log store backed by a concurrent [`DashMap`].
+///
+/// Each topic maps to a `Vec<LogEntry>` protected by an `Arc<RwLock<>>`,
+/// allowing concurrent reads during replay while writes are serialized.
 #[derive(Debug, Default)]
 pub struct MemoryLogStore {
     inner: DashMap<String, Arc<RwLock<Vec<LogEntry>>>>,
 }
 
 impl MemoryLogStore {
+    /// Create a new, empty [`MemoryLogStore`].
     pub fn new() -> Self {
         Self::default()
     }
@@ -122,11 +127,16 @@ mod sled_impl {
     use crate::storage::engine::SledEngine;
     use crate::storage::engine::StorageEngine;
 
+    /// Sled-backed message log store.
+    ///
+    /// Stores log entries in a sled tree keyed by `(topic, offset)`, supporting
+    /// prefix scans for range queries during replay.
     pub struct SledLogStore {
         engine: SledEngine,
     }
 
     impl SledLogStore {
+        /// Create a new [`SledLogStore`] backed by the given sled engine.
         pub fn new(engine: SledEngine) -> Self {
             Self { engine }
         }
