@@ -40,7 +40,6 @@ use std::time::Duration;
 
 use bytes::Bytes;
 use tokio::sync::{Semaphore, mpsc};
-use uuid::Uuid;
 
 use crate::actor::messages::TopicMsg;
 use crate::broker::broker::PublishOutcome;
