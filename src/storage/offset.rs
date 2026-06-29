@@ -29,12 +29,16 @@ pub trait OffsetStore: Send + Sync {
 
 // ── Memory-backed ────────────────────────────────────────────
 
+/// In-memory offset store backed by a concurrent [`DashMap`].
+///
+/// Each topic maps to an [`AtomicI64`] tracking the current head offset.
 #[derive(Debug, Default)]
 pub struct MemoryOffsetStore {
     inner: DashMap<String, AtomicI64>,
 }
 
 impl MemoryOffsetStore {
+    /// Create a new, empty [`MemoryOffsetStore`].
     pub fn new() -> Self {
         Self::default()
     }
@@ -70,12 +74,18 @@ mod sled_impl {
     use crate::storage::engine::SledEngine;
     use crate::storage::engine::StorageEngine;
 
+    /// Sled-backed offset store with an in-memory write-through cache.
+    ///
+    /// Hot offset values are cached in memory for fast reads, with writes
+    /// going through to the underlying sled tree for durability.
     pub struct SledOffsetStore {
         engine: SledEngine,
         cache: parking_lot::Mutex<std::collections::HashMap<String, i64>>,
     }
 
     impl SledOffsetStore {
+        /// Create a new [`SledOffsetStore`], pre-loading the cache from existing
+        /// offset keys in the sled tree.
         pub fn new(engine: SledEngine) -> Self {
             let mut cache = std::collections::HashMap::new();
             for (key, value) in engine
