@@ -117,7 +117,7 @@ impl TransportConnection for WarpWsConnection {
                 continue;
             }
             if msg.is_close() {
-                return Err(RiftError::Session(crate::error::SessionReject::Expired));
+                return Err(RiftError::Session(crate::error::SessionReject::Closed));
             }
         }
     }
