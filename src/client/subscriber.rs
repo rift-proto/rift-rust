@@ -1,12 +1,12 @@
 use std::collections::HashMap;
 
-use crate::message::SubscribeMode;
+use crate::broker::SubscribeIntent;
 
 /// Tracks which topics the client is subscribed to so they can be
 /// re-sent after a reconnect.
 #[derive(Debug)]
 pub(super) struct SubscriptionTracker {
-    topics: HashMap<String, SubscribeMode>,
+    topics: HashMap<String, SubscribeIntent>,
 }
 
 impl SubscriptionTracker {
@@ -17,7 +17,7 @@ impl SubscriptionTracker {
     }
 
     /// Record a new subscription (or update the mode of an existing one).
-    pub(super) fn add(&mut self, topic: &str, mode: SubscribeMode) {
+    pub(super) fn add(&mut self, topic: &str, mode: SubscribeIntent) {
         self.topics.insert(topic.to_string(), mode);
     }
 
@@ -28,12 +28,12 @@ impl SubscriptionTracker {
 
     /// Returns the mode for a topic, if subscribed.
     #[allow(dead_code)]
-    pub(super) fn get(&self, topic: &str) -> Option<SubscribeMode> {
+    pub(super) fn get(&self, topic: &str) -> Option<SubscribeIntent> {
         self.topics.get(topic).copied()
     }
 
     /// Iterate all tracked subscriptions.
-    pub(super) fn iter(&self) -> impl Iterator<Item = (&String, &SubscribeMode)> {
+    pub(super) fn iter(&self) -> impl Iterator<Item = (&String, &SubscribeIntent)> {
         self.topics.iter()
     }
 
@@ -62,15 +62,15 @@ mod tests {
     #[test]
     fn add_and_get() {
         let mut t = SubscriptionTracker::new();
-        t.add("room/1", SubscribeMode::Live);
-        assert_eq!(t.get("room/1"), Some(SubscribeMode::Live));
+        t.add("room/1", SubscribeIntent::Live);
+        assert_eq!(t.get("room/1"), Some(SubscribeIntent::Live));
         assert_eq!(t.get("room/2"), None);
     }
 
     #[test]
     fn remove() {
         let mut t = SubscriptionTracker::new();
-        t.add("a", SubscribeMode::Replay);
+        t.add("a", SubscribeIntent::Replay { from: 0 });
         assert!(t.remove("a"));
         assert!(!t.remove("a"));
         assert_eq!(t.len(), 0);
@@ -79,16 +79,16 @@ mod tests {
     #[test]
     fn update_mode() {
         let mut t = SubscriptionTracker::new();
-        t.add("x", SubscribeMode::Live);
-        t.add("x", SubscribeMode::Replay);
-        assert_eq!(t.get("x"), Some(SubscribeMode::Replay));
+        t.add("x", SubscribeIntent::Live);
+        t.add("x", SubscribeIntent::Replay { from: 0 });
+        assert_eq!(t.get("x"), Some(SubscribeIntent::Replay { from: 0 }));
     }
 
     #[test]
     fn iter_yields_all() {
         let mut t = SubscriptionTracker::new();
-        t.add("a", SubscribeMode::Live);
-        t.add("b", SubscribeMode::Ephemeral);
+        t.add("a", SubscribeIntent::Live);
+        t.add("b", SubscribeIntent::Ephemeral);
         let names: Vec<&str> = t.iter().map(|(k, _)| k.as_str()).collect();
         assert!(names.contains(&"a"));
         assert!(names.contains(&"b"));
