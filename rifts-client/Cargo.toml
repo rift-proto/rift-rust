@@ -2,6 +2,7 @@
 name = "rifts-client"
 version.workspace = true
 edition.workspace = true
+license.workspace = true
 description = "Async client SDK for the Rift Realtime Protocol with auto-reconnect, heartbeat, and typed events"
 
 [features]

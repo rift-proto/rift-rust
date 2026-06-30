@@ -2,6 +2,7 @@
 name = "rifts-core"
 version.workspace = true
 edition.workspace = true
+license.workspace = true
 description = "Rift Realtime Protocol core types, codec, and error hierarchy"
 
 [dependencies]

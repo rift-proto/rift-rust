@@ -2,6 +2,7 @@
 name = "rifts-redis"
 version.workspace = true
 edition.workspace = true
+license.workspace = true
 description = "Redis-backed multi-instance broker and storage for the Rift Realtime Protocol"
 
 [features]

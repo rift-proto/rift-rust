@@ -2,6 +2,7 @@
 name = "rifts-transport"
 version.workspace = true
 edition.workspace = true
+license.workspace = true
 description = "Rift transport-layer abstraction and framework adapters (axum, actix-web, warp, ntex, standalone WS)"
 
 [features]

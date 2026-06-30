@@ -30,7 +30,11 @@ allow = [
 
 [bans]
 multiple-versions = "warn"
-wildcards = "deny"
+wildcards = "allow"
+# Workspace crates use `workspace = true` which is not a wildcard
+deny = [
+  { name = "openssl-sys", wrappers = [] },
+]
 highlight = "all"
 
 [sources]
