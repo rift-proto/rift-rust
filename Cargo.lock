@@ -2341,32 +2341,156 @@ checksum = "d6f6ff9a378485b298a5286656da665ba74413d36db0979633275d2e708145d4"
 
 [[package]]
 name = "rifts"
-version = "0.3.10"
+version = "0.4.1"
+dependencies = [
+ "async-trait",
+ "bytes",
+ "criterion",
+ "futures-util",
+ "rand 0.10.1",
+ "rifts-broker",
+ "rifts-client",
+ "rifts-core",
+ "rifts-redis",
+ "rifts-session",
+ "rifts-storage",
+ "rifts-transport",
+ "serde",
+ "serde_json",
+ "sled",
+ "tempfile",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+ "uuid",
+]
+
+[[package]]
+name = "rifts-broker"
+version = "0.4.1"
+dependencies = [
+ "async-trait",
+ "bytes",
+ "dashmap",
+ "parking_lot 0.12.5",
+ "rifts-core",
+ "rifts-session",
+ "rifts-storage",
+ "rifts-transport",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tokio",
+ "tracing",
+ "uuid",
+]
+
+[[package]]
+name = "rifts-client"
+version = "0.4.1"
+dependencies = [
+ "async-trait",
+ "bytes",
+ "futures-util",
+ "rand 0.10.1",
+ "rifts-core",
+ "rifts-transport",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tokio",
+ "tokio-tungstenite",
+ "tracing",
+ "ulid",
+ "uuid",
+]
+
+[[package]]
+name = "rifts-core"
+version = "0.4.1"
+dependencies = [
+ "async-trait",
+ "bytes",
+ "ciborium",
+ "dashmap",
+ "parking_lot 0.12.5",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tokio",
+ "tracing",
+ "ulid",
+ "uuid",
+]
+
+[[package]]
+name = "rifts-redis"
+version = "0.4.1"
+dependencies = [
+ "async-trait",
+ "bytes",
+ "ciborium",
+ "dashmap",
+ "futures-util",
+ "redis",
+ "rifts-broker",
+ "rifts-core",
+ "rifts-storage",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "rifts-session"
+version = "0.4.1"
+dependencies = [
+ "async-trait",
+ "bytes",
+ "parking_lot 0.12.5",
+ "rifts-core",
+ "rifts-storage",
+ "serde_json",
+ "thiserror",
+ "tokio",
+ "ulid",
+]
+
+[[package]]
+name = "rifts-storage"
+version = "0.4.1"
+dependencies = [
+ "async-trait",
+ "bytes",
+ "dashmap",
+ "parking_lot 0.12.5",
+ "rifts-core",
+ "serde",
+ "serde_json",
+ "sled",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "rifts-transport"
+version = "0.4.1"
 dependencies = [
  "actix-web",
  "actix-ws",
  "async-trait",
  "axum",
  "bytes",
- "ciborium",
- "criterion",
- "dashmap",
  "futures-util",
  "ntex",
- "parking_lot 0.12.5",
- "rand 0.10.1",
- "redis",
+ "rifts-core",
  "serde",
  "serde_json",
- "sled",
- "tempfile",
- "thiserror",
  "tokio",
  "tokio-tungstenite",
  "tracing",
- "tracing-subscriber",
- "ulid",
- "uuid",
  "warp",
 ]
 

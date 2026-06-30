@@ -1,0 +1,23 @@
+[package]
+name = "rifts-broker"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+rifts-core = { path = "../rifts-core" }
+rifts-storage = { path = "../rifts-storage" }
+rifts-session = { path = "../rifts-session" }
+rifts-transport = { path = "../rifts-transport" }
+tokio = { workspace = true, features = ["macros", "rt", "sync", "time"] }
+bytes = { workspace = true }
+serde = { workspace = true }
+dashmap = { workspace = true }
+parking_lot = { workspace = true }
+tracing = { workspace = true }
+async-trait = { workspace = true }
+thiserror = { workspace = true }
+uuid = { workspace = true }
+serde_json = { workspace = true }
+
+[features]
+sled = ["rifts-storage/sled"]

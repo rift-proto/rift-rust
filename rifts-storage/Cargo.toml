@@ -1,0 +1,19 @@
+[package]
+name = "rifts-storage"
+version.workspace = true
+edition.workspace = true
+
+[features]
+sled = ["dep:sled"]
+
+[dependencies]
+rifts-core = { path = "../rifts-core" }
+tokio = { workspace = true, features = ["macros", "rt", "sync", "time"] }
+bytes = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tracing = { workspace = true }
+async-trait = { workspace = true }
+dashmap = { workspace = true }
+parking_lot = { workspace = true }
+sled = { workspace = true, optional = true }

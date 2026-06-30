@@ -13,72 +13,60 @@ Session::    Identity, connection lifetime, recovery, heartbeat, flow‑control 
 Message::    Message type, reliability, ordering, ack, replay, priority, TTL.
 Topic::       Subscription, publish, permission, sharding, fanout, retention, snapshot.
 
-== Full Crate Map (72 files, ~11,600 LOC)
+== Workspace Crate Map
 
 [cols="2m,1m,6a",options="header"]
 |===
-| Module | Layer | Responsibility
+| Crate | Layer | Responsibility
 
-| `frame`
-| Message
-| `Frame` envelope, `FrameType`, `FrameFlags`, `Codec`, `Priority`.  All `Serialize`/`Deserialize` for CBOR wire.
+| `rifts-core`
+| Message / Session / Topic
+| Protocol fundamentals: frames, codecs, message models, protocol constants, topic profiles, metrics, errors, ack, and flow-control primitives. This crate has no transport, broker, or storage backend implementation.
 
-| `codec`
+| `rifts-storage`
+| Topic
+| Storage traits and local implementations: `StorageEngine`, memory stores, sled stores, key encoding, log, offset, dedupe, and snapshot APIs. Redis adapters intentionally live outside this crate.
+
+| `rifts-transport`
 | Transport
-| JSON + CBOR codecs.  `Codec` trait with `encode_value`/`decode_value`.  Negotiated during handshake.
+| Transport traits plus optional WebSocket/framework adapters for tungstenite, axum, actix-web, warp, and ntex.
 
-| `protocol`
+| `rifts-session`
 | Session
-| `Hello` / `Welcome` / `Ready`, `CloseCode` (1000‑1015), `ErrorCode` (42 codes), `HeartbeatPolicy`.
+| Authentication, session identity, session state, offset tracking, resume decisions, and session store.
 
-| `message`
-| Message
-| Eight message classes, `DeliveryMode`, `SubscribeMode`, `Message` enum.
+| `rifts-broker`
+| Topic / Session
+| Message routing core: `Broker`, `InMemoryBroker`, fanout, topic routing, and per-connection state machine.
 
-| `topic`
-| Topic
-| `TopicProfile`, `RetentionPolicy`, `OrderingPolicy`, `TopicStore` (Arc‑shared DashMap).
+| `rifts-redis`
+| Topic / Infra
+| Redis-backed storage adapters, Redis-backed broker, and Redis Pub/Sub fanout bridge for multi-instance deployments.
 
-| `session`
-| Session
-| `Session` (ULID), `SessionState` FSM, `AuthProvider` trait, `ResumeManager`, `OffsetTracker`.
+| `rifts-client`
+| Client
+| Async client SDK: WebSocket connection, handshake, reconnect, heartbeat, publish/subscribe helpers, typed client events.
 
-| `broker`
-| Topic
-| `Broker` trait (async), `InMemoryBroker<O,L,D,S>`, `GatewayMsg` CBOR protocol, `FanoutEngine`, `DedupeStore`, `OffsetStore`, `SnapshotStore`.
-
-| `storage`
-| Topic
-| `StorageEngine` trait, `MemoryEngine`, `SledEngine` (sled::Tree), `OffsetStore`/`LogStore`/`DedupeStore`/`SnapshotStore` traits + Memory + Sled impls, key encoding helpers.
-
-| `transport`
-| Transport
-| `Transport` / `TransportListener` / `TransportConnection` traits, `WebSocketTransport` with split read/write halves, framework adapters (axum, actix, warp, ntex).
-
-| `ack`
-| Session
-| `AckManager`, `AckStatus` (9 variants), per‑session timeout tracking.
-
-| `flow`
-| Session
-| `BackpressureController` (atomic CAS‑loop enqueue, 6 strategies), `RateLimiter` (token‑bucket).
-
-| `server`
+| `rifts`
 | —
-| `RiftServer` + `RiftServerBuilder`, event loop, graceful shutdown.
-
-| `connection`
-| Session
-| Per‑connection state machine: Open → Hello → Auth → Resume/Start → Ready → Active → Draining → Closed.
-
-| `metrics`
-| —
-| Process‑local atomic counters (connections, messages, backpressure).
-
-| `trace`
-| Message
-| Lightweight `TraceContext` (trace_id, span_id, parent_span_id, sampled).
+| Umbrella facade crate. Re-exports the public API surface and provides `RiftServer` / `RiftServerBuilder`.
 |===
+
+The crate dependency direction is intentionally one-way:
+
+[source]
+----
+rifts-storage   -> rifts-core
+rifts-transport -> rifts-core
+rifts-session   -> rifts-core, rifts-storage
+rifts-broker    -> rifts-core, rifts-storage, rifts-session, rifts-transport
+rifts-redis     -> rifts-core, rifts-storage, rifts-broker
+rifts-client    -> rifts-core, rifts-transport
+rifts           -> facade over the ecosystem crates
+
+rifts-client depends on rifts-core and the WebSocket transport only.
+rifts re-exports the ecosystem crates behind feature flags.
+----
 
 == Connection Lifecycle (spec §5)
 
@@ -126,7 +114,8 @@ pub trait Broker: Send + Sync {
 }
 ----
 
-Three implementations ship with the crate:
+The broker crate ships the in-process implementation. Redis-backed multi-instance
+routing lives in `rifts-redis`.
 
 [cols="2,3,5a",options="header"]
 |===
@@ -245,15 +234,14 @@ straightforward.
 All counters use `Ordering::Relaxed` — they are approximate by design and intended
 for monitoring dashboards, not control flow.
 
-== Trace Context (spec §23.1)
+== Trace Identifier (spec §23.1)
 
-`TraceContext` carries distributed‑trace metadata across frames.  Each context
-holds an optional `trace_id`, `span_id`, `parent_span_id`, and a `sampled` flag.
-Ids are ULIDs (time‑sortable).  `TraceContext::new_root()` creates a new trace;
-`context.child()` creates a child span sharing the same `trace_id`.
+The current implementation stores distributed trace correlation as the optional
+`Frame::trace_id` field. It does not expose a dedicated trace context module.
 
-When the `TRACE` frame flag is set, the payload may include trace context fields
-in the header.
+When the `TRACE` frame flag is set, the payload may include richer trace metadata
+defined by the protocol, but the typed Rust API currently models only the trace
+chain identifier.
 
 == Persistence Layer
 
@@ -313,16 +301,19 @@ wrapper so the `Result` type stays small on the stack.
 
 == Testing
 
-The crate ships three test suites:
+The workspace ships three test layers:
 
-. *Unit tests* (116) — inline `#[cfg(test)] mod tests` in every module.
-. *Integration tests* (7) — `tests/integration.rs`: frame‑encoding round‑trip, codec, auth.
-. *Doc tests* (2) — `src/lib.rs` quick‑start example, `src/actor/mod.rs` actor example.
+. *Unit tests* — inline `#[cfg(test)] mod tests` across the protocol, storage,
+  broker, session, transport, Redis, and client crates.
+. *Integration tests* — `rifts/tests/integration.rs` and
+  `rifts/tests/redis_integration.rs`.
+. *Doc tests* — public API examples in the library crates.
 
 Run them all with:
 
 [source,sh]
 ----
 cargo test
-cargo test --features sled
+cargo test -p rifts --features sled
+cargo test --workspace --all-features
 ----

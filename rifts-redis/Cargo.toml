@@ -1,0 +1,24 @@
+[package]
+name = "rifts-redis"
+version.workspace = true
+edition.workspace = true
+description = "Redis-backed multi-instance broker and storage for the Rift Realtime Protocol"
+
+[features]
+redis = ["dep:redis", "dep:ciborium"]
+
+[dependencies]
+rifts-core = { path = "../rifts-core" }
+rifts-storage = { path = "../rifts-storage" }
+rifts-broker = { path = "../rifts-broker" }
+redis = { workspace = true, optional = true }
+ciborium = { workspace = true, optional = true }
+tokio = { workspace = true, features = ["macros", "rt", "sync", "time"] }
+serde = { workspace = true }
+serde_json = { workspace = true }
+bytes = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+async-trait = { workspace = true }
+dashmap = { workspace = true }
+futures-util = { workspace = true }

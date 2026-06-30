@@ -1,0 +1,86 @@
+[package]
+name = "rifts"
+version.workspace = true
+edition.workspace = true
+description = "Rift Realtime Protocol / 1.0 — server + client umbrella facade crate"
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+# Core dependencies (always required)
+rifts-core = { path = "../rifts-core" }
+rifts-broker = { path = "../rifts-broker" }
+rifts-session = { path = "../rifts-session" }
+
+# Optional sub-crates
+rifts-storage = { path = "../rifts-storage", optional = true }
+rifts-transport = { path = "../rifts-transport", optional = true }
+rifts-redis = { path = "../rifts-redis", optional = true }
+rifts-client = { path = "../rifts-client", optional = true }
+
+# Direct dependencies used by server.rs
+tokio = { workspace = true, features = ["macros", "rt", "sync", "time"] }
+futures-util = { workspace = true }
+tracing = { workspace = true }
+async-trait = { workspace = true }
+
+[features]
+default = ["websocket", "sled"]
+
+# Storage backends
+sled = ["dep:rifts-storage", "rifts-storage/sled"]
+
+# Internal: any transport backend enables this gate so server.rs can
+# reference rifts-transport types.
+_transport = ["dep:rifts-transport"]
+
+# Transport backends (each implies _transport)
+websocket = ["_transport", "rifts-transport/websocket"]
+axum = ["_transport", "rifts-transport/axum"]
+actix-web = ["_transport", "rifts-transport/actix-web"]
+warp = ["_transport", "rifts-transport/warp"]
+ntex = ["_transport", "rifts-transport/ntex"]
+
+# Framework aliases
+tokio-frameworks = ["axum", "warp"]
+all-frameworks = ["axum", "actix-web", "warp", "ntex"]
+
+# Redis integration
+redis = ["dep:rifts-redis", "rifts-redis/redis"]
+
+# Client SDK
+client = ["dep:rifts-client", "rifts-client/client"]
+
+[dev-dependencies]
+criterion = { workspace = true, features = ["async_tokio"] }
+tracing-subscriber = { workspace = true }
+tempfile = { workspace = true }
+bytes = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true, features = ["macros", "rt-multi-thread", "signal", "sync", "time"] }
+rand = { workspace = true }
+uuid = { workspace = true }
+async-trait = { workspace = true }
+sled = { workspace = true }
+
+[[example]]
+name = "redis_multi_instance"
+required-features = ["redis"]
+
+[[test]]
+name = "redis_integration"
+required-features = ["redis"]
+
+[[bench]]
+name = "websocket_loop"
+required-features = ["client"]
+
+[[bench]]
+name = "sled_store"
+required-features = ["sled"]
+
+[[bench]]
+name = "storage_memory"
+required-features = ["sled"]

@@ -1,44 +1,26 @@
-[package]
-name = "rifts"
-version = "0.3.10"
+[workspace]
+resolver = "2"
+members = [
+  "rifts-core",
+  "rifts-storage",
+  "rifts-transport",
+  "rifts-broker",
+  "rifts-session",
+  "rifts-redis",
+  "rifts-client",
+  "rifts",
+]
+
+[workspace.package]
+version = "0.4.1"
 edition = "2024"
 authors = ["Zhenyi <434836402@qq.com>"]
-description = "Rift Realtime Protocol / 1.0 — server + client implementation"
-repository = "https://github.com/rift-proto/rifts"
-homepage = "https://github.com/rift-proto/rifts"
-documentation = "https://docs.rs/rifts"
-readme = "README.adoc"
 license = "MIT OR Apache-2.0"
-keywords = ["realtime", "websocket", "messaging", "pubsub", "protocol"]
-categories = ["network-programming", "web-programming::websocket"]
+repository = "https://github.com/rift-proto/rifts"
 
-[features]
-default = ["websocket"]
-
-# Standalone WebSocket transport (default).
-websocket = ["dep:tokio-tungstenite"]
-
-# Async client SDK with auto-reconnect, heartbeat, and typed events.
-client = ["websocket", "dep:rand"]
-
-# Embedded persistent storage via sled.
-sled = ["dep:sled"]
-
-# Framework adapters — each enables a TransportConnection impl for
-# the framework's WebSocket type.
-axum = ["dep:axum"]
-actix-web = ["dep:actix-web", "dep:actix-ws"]
-warp = ["dep:warp"]
-ntex = ["dep:ntex"]
-
-# Composite shortcuts.
-tokio-frameworks = ["axum", "warp"]
-all-frameworks = ["axum", "actix-web", "warp", "ntex"]
-redis = ["dep:redis"]
-
-[dependencies]
-tokio = { version = "1", features = ["full"] }
-tokio-tungstenite = { version = "0.29", features = ["url"], optional = true }
+[workspace.dependencies]
+tokio = { version = "1", default-features = false }
+tokio-tungstenite = { version = "0.29", features = ["url"] }
 futures-util = { version = "0.3", features = ["sink"] }
 bytes = { version = "1", features = ["serde"] }
 serde = { version = "1", features = ["derive"] }
@@ -51,99 +33,14 @@ dashmap = "6"
 thiserror = "2"
 tracing = "0.1"
 async-trait = "0.1"
-sled = { version = "0.34", optional = true }
-rand = { version = "0.10", optional = true }
-
-# Framework adapters (optional, gated by features).
-axum = { version = "0.8", optional = true, features = ["ws"] }
-actix-web = { version = "4", optional = true }
-actix-ws = { version = "0.4", optional = true }
-warp = { version = "0.4", optional = true, features = ["websocket"] }
-ntex = { version = "3", optional = true, features = ["ws"] }
-redis = { version = "1.3.0", features = ["tokio-comp", "aio", "streams"], optional = true }
-
-[dev-dependencies]
+sled = { version = "0.34" }
+rand = { version = "0.10" }
+axum = { version = "0.8", features = ["ws"] }
+actix-web = { version = "4" }
+actix-ws = { version = "0.4" }
+warp = { version = "0.4", features = ["websocket"] }
+ntex = { version = "3", features = ["ws"] }
+redis = { version = "1.3.0", features = ["tokio-comp", "aio", "streams"] }
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
 criterion = { version = "0.8", features = ["async_tokio"] }
 tempfile = "3"
-
-[[example]]
-name = "redis_multi_instance"
-required-features = ["redis"]
-
-[[bench]]
-name = "wire_frame"
-path = "benches/wire_frame.rs"
-harness = false
-
-[[bench]]
-name = "serde_codecs"
-path = "benches/serde_codecs.rs"
-harness = false
-
-[[bench]]
-name = "frame_model"
-path = "benches/frame_model.rs"
-harness = false
-
-[[bench]]
-name = "message_model"
-path = "benches/message_model.rs"
-harness = false
-
-[[bench]]
-name = "flow_control"
-path = "benches/flow_control.rs"
-harness = false
-
-[[bench]]
-name = "fanout"
-path = "benches/fanout.rs"
-harness = false
-
-[[bench]]
-name = "topic_store"
-path = "benches/topic_store.rs"
-harness = false
-
-[[bench]]
-name = "storage_memory"
-path = "benches/storage_memory.rs"
-harness = false
-
-[[bench]]
-name = "broker_memory"
-path = "benches/broker_memory.rs"
-harness = false
-
-[[bench]]
-name = "session_resume"
-path = "benches/session_resume.rs"
-harness = false
-
-[[bench]]
-name = "ack_metrics"
-path = "benches/ack_metrics.rs"
-harness = false
-
-[[bench]]
-name = "e2e_inprocess"
-path = "benches/e2e_inprocess.rs"
-harness = false
-
-[[bench]]
-name = "sled_store"
-path = "benches/sled_store.rs"
-harness = false
-required-features = ["sled"]
-
-[[bench]]
-name = "websocket_loop"
-path = "benches/websocket_loop.rs"
-harness = false
-required-features = ["client"]
-
-[[bench]]
-name = "throughput"
-path = "benches/throughput.rs"
-harness = false

@@ -1,0 +1,15 @@
+[package]
+name = "rifts-session"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+rifts-core = { path = "../rifts-core" }
+rifts-storage = { path = "../rifts-storage" }
+tokio = { workspace = true, features = ["macros", "rt"] }
+bytes = { workspace = true }
+serde_json = { workspace = true }
+ulid = { workspace = true }
+async-trait = { workspace = true }
+parking_lot = { workspace = true }
+thiserror = { workspace = true }

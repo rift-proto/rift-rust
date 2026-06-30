@@ -315,28 +315,22 @@ async fn main() -> rifts::Result<()> {
 }
 ----
 
-== Trace Context Propagation
+== Trace Identifier Propagation
 
 [source,rust]
 ----
-use rifts::trace::TraceContext;
+use rifts::Frame;
 
-fn handle_incoming_frame(incoming: TraceContext) {
-    // Create a child span for server-side processing.
-    let server_span = incoming.child();
-    println!(
-        "trace_id={:?} span_id={:?} parent={:?}",
-        server_span.trace_id,
-        server_span.span_id,
-        server_span.parent_span_id,
-    );
+fn handle_incoming_frame(incoming: &Frame) {
+    if let Some(trace_id) = incoming.trace_id.as_deref() {
+        println!("trace_id={trace_id}");
 
-    // Pass server_span to downstream calls (DB, RPC, etc.).
-    do_work(server_span);
+        // Propagate the same trace chain identifier to downstream calls.
+        do_work(trace_id);
+    }
 }
 
-fn do_work(ctx: TraceContext) {
-    let db_span = ctx.child();
-    // ... use db_span for database query tracing
+fn do_work(trace_id: &str) {
+    // Attach trace_id to logs, metrics, or downstream protocol headers.
 }
 ----

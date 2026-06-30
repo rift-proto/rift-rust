@@ -1,0 +1,29 @@
+[package]
+name = "rifts-transport"
+version.workspace = true
+edition.workspace = true
+description = "Rift transport-layer abstraction and framework adapters (axum, actix-web, warp, ntex, standalone WS)"
+
+[features]
+default = []
+websocket = ["tokio-tungstenite"]
+axum = ["dep:axum"]
+actix-web = ["dep:actix-web", "dep:actix-ws"]
+warp = ["dep:warp"]
+ntex = ["dep:ntex"]
+
+[dependencies]
+rifts-core = { path = "../rifts-core" }
+tokio = { workspace = true, features = ["sync", "net", "rt"] }
+bytes = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tracing = { workspace = true }
+async-trait = { workspace = true }
+futures-util = { workspace = true }
+tokio-tungstenite = { workspace = true, optional = true }
+axum = { workspace = true, optional = true }
+actix-web = { workspace = true, optional = true }
+actix-ws = { workspace = true, optional = true }
+warp = { workspace = true, optional = true }
+ntex = { workspace = true, optional = true }

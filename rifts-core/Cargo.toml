@@ -1,0 +1,19 @@
+[package]
+name = "rifts-core"
+version.workspace = true
+edition.workspace = true
+description = "Rift Realtime Protocol core types, codec, and error hierarchy"
+
+[dependencies]
+tokio = { workspace = true, features = ["time"] }
+bytes = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+ciborium = { workspace = true }
+uuid = { workspace = true }
+ulid = { workspace = true }
+parking_lot = { workspace = true }
+dashmap = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+async-trait = { workspace = true }

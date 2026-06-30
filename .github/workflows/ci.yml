@@ -35,7 +35,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
 
       - name: Build
-        run: cargo build --no-default-features --features "${{ matrix.feature }}"
+        run: cargo build -p rifts --no-default-features --features "${{ matrix.feature }}"
 
   test:
     name: Test
@@ -48,7 +48,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
 
       - name: Run tests
-        run: cargo test --all-features
+        run: cargo test --all-features --workspace
 
   lint:
     name: Lint
@@ -63,10 +63,10 @@ jobs:
       - uses: Swatinem/rust-cache@v2
 
       - name: Check formatting
-        run: cargo fmt --check
+        run: cargo fmt --check --all
 
-      - name: Clippy (lib + tests)
-        run: cargo clippy --lib --tests --all-features -- -D warnings
+      - name: Clippy (workspace)
+        run: cargo clippy --workspace --lib --tests --all-features -- -D warnings
 
   docs:
     name: Docs
@@ -79,6 +79,6 @@ jobs:
       - uses: Swatinem/rust-cache@v2
 
       - name: Check documentation
-        run: cargo doc --no-deps
+        run: cargo doc --workspace --no-deps
         env:
           RUSTDOCFLAGS: "-D warnings"
