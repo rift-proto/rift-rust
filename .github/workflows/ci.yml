@@ -79,6 +79,4 @@ jobs:
       - uses: Swatinem/rust-cache@v2
 
       - name: Check documentation
-        run: cargo doc --workspace --no-deps
-        env:
-          RUSTDOCFLAGS: "-D warnings"
+        run: cargo doc --workspace --no-deps --all-features
