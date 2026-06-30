@@ -8,6 +8,8 @@ on:
     paths:
       - "Cargo.lock"
       - "Cargo.toml"
+      - "deny.toml"
+      - "**/Cargo.toml"
   workflow_dispatch:
 
 jobs:
@@ -37,7 +39,7 @@ jobs:
         run: cargo install cargo-machete --locked
 
       - name: Check unused dependencies
-        run: cargo machete
+        run: cargo machete --with-metadata
 
   deny:
     name: Cargo Deny

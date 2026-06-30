@@ -28,3 +28,6 @@ actix-web = { workspace = true, optional = true }
 actix-ws = { workspace = true, optional = true }
 warp = { workspace = true, optional = true }
 ntex = { workspace = true, optional = true }
+
+[package.metadata.cargo-machete]
+ignored = ["bytes", "serde", "serde_json"]
